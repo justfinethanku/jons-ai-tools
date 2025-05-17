@@ -1,0 +1,10 @@
+.DS_Store
+venv/
+lib/
+bin/
+include/
+*.zip
+*.dylib
+__pycache__/
+*.pyc
+
