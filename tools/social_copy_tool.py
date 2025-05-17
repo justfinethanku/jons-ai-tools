@@ -6,6 +6,7 @@ from prompts.copy_prompts.social_prompts.facebook_copy import PROMPT as FACEBOOK
 import google.generativeai as genai
 import os
 import importlib.util
+from frameworks.universal_framework import home_button
 
 PROMPT_DIR = "prompts/copy_prompts/social_prompts"
 platform_prompts={}
@@ -38,6 +39,7 @@ import os
 def run():
     st.header("Copy Generator")
     col_left, col_right = st.columns([1, 3])
+   
 
     with col_left:
         uploaded_file = st.file_uploader("Drag & Drop a file here", type=None, label_visibility="visible")
@@ -60,7 +62,7 @@ def run():
         elif file_text:
             input_text = file_text
         elif notes:
-            input_text = notes
+            input_text = notes 
         else:
             input_text = ""
 
@@ -80,6 +82,8 @@ def run():
                     results[platform] = response.text.strip()
                 except Exception as e:
                     results[platform] = f"Error: {e}"
+    #this should pass the results of the outputs to the save outputs button
+    home_button(outputs_dict=results, key_prefix="copy_tool")
 
     with col_right:
         for platform in platform_prompts:
