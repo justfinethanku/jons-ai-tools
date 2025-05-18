@@ -18,7 +18,7 @@ def sidebar_info():
 
 def refine_prompt(rough_prompt, meta_prompt):
     genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-2.5-pro-preview-05-06")
     response = model.generate_content(f"{meta_prompt}\n\n[ {rough_prompt} ]")
     return response.text.strip()
 

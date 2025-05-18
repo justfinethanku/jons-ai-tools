@@ -57,7 +57,7 @@ def run():
             except Exception:
                 file_text = file_bytes.decode("latin-1")
 
-        if file_text and notes:
+        if file_text and notes: 
             input_text = file_text + "\n\n" + notes
         elif file_text:
             input_text = file_text
