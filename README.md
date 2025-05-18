@@ -26,7 +26,7 @@ All tools are managed under version control and automatically backed up to GitHu
     ```bash
     pip install -r requirements.txt
     ```
-
+note: you need to add your own Gemini API key into a .env file
 2. **Run the app:**
     ```bash
     streamlit run app.py
