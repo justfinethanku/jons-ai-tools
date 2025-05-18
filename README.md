@@ -1,7 +1,3 @@
-Absolutely! Here’s your updated README, marketing language feature list included—ready to copy and paste:
-
-⸻
-
 Jon’s AI Tools
 
 Overview
