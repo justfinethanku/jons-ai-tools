@@ -1,3 +1,4 @@
 GEMINI_API_KEY=your-gemini-key-here
 PYTHONPATH=.
 #add your gemini api key above and then change the name of this to .env
+ 
