@@ -1,9 +1,9 @@
-# tools/social_copy_tool.py
 import streamlit as st
 import os
 import importlib
 import google.generativeai as genai
 import openai
+from frameworks.universal_framework import outputs_to_txt_bytes
 
 def load_all_prompts():
     """Dynamically load all prompts from social_prompts folder"""
@@ -54,8 +54,8 @@ IMPORTANT: Follow the client's brand voice and tone exactly.
         # Try Gemini first
         if st.secrets.get("GEMINI_API_KEY"):
             genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-            model = genai.GenerativeModel('gemini-pro')
-            response = model.generate_content(final_prompt)
+            model = genai.GenerativeModel('gemini-2.0-flash')
+            response = model.generate_content(final_prompt) 
             return response.text
         
         # Fallback to OpenAI
@@ -79,40 +79,93 @@ IMPORTANT: Follow the client's brand voice and tone exactly.
 
 def run():
     """Main function called by app.py"""
-    from frameworks.copy_generator_framework import run_copy_generator
-    
-    # Load all available prompts
-    prompts = load_all_prompts()
-    platform_names = list(prompts.keys())
-    
-    # Use your framework, but dynamically pass platform names
-    uploaded_file, notes = run_copy_generator(
-        tool_name="Copy Generator",
-        right_box_labels=platform_names,
-        sidebar_info=lambda: st.sidebar.info("Upload notes or scripts to generate platform-specific copy.")
-    )
+    st.header("Copy Generator")
     
     # Show selected client info
     selected_client = st.session_state.get("selected_client")
     if selected_client:
         st.success(f"🎯 Selected Client: **{selected_client['name']}**")
     
-    # Generate button
-    if st.button("🚀 Generate Copy", key="generate_all_copy"):
+    # Input section
+    col_left, col_right = st.columns([1, 3])
+    
+    with col_left:
+        st.sidebar.info("Upload notes or scripts to generate platform-specific copy.")
+        uploaded_file = st.file_uploader("Drag & Drop a file here", type=None)
+        notes = st.text_area("Notes", height=200)
+        
+        # Generate button
+        generate_clicked = st.button("🚀 Generate Copy", key="generate_copy_button")
+    
+    with col_right:
+        st.write("") # Empty space initially
+    
+    # Generate copy when button is clicked
+    if generate_clicked:
         if notes.strip():
+            # Load prompts and generate
+            prompts = load_all_prompts()
+            
+            if not prompts:
+                st.error("No prompts found! Check your prompts/copy_prompts/social_prompts folder.")
+                return
+            
+            # Store generated content in session state
+            if "generated_outputs" not in st.session_state:
+                st.session_state["generated_outputs"] = {}
+            
             with st.spinner("Generating copy for all platforms..."):
-                # Generate for each platform and update the text areas
-                for platform_name in platform_names:
-                    if platform_name in prompts:
-                        generated_copy = generate_copy_for_platform(
-                            prompts[platform_name], 
-                            notes, 
-                            selected_client
-                        )
-                        # Update the session state so the text areas show the generated content
-                        st.session_state[f"copy_gen_{platform_name}"] = generated_copy
+                # Generate for each platform
+                for platform_name, prompt_template in prompts.items():
+                    generated_copy = generate_copy_for_platform(
+                        prompt_template, 
+                        notes, 
+                        selected_client
+                    )
+                    st.session_state["generated_outputs"][platform_name] = generated_copy
             
             st.success("✅ Copy generated for all platforms!")
-            st.rerun()  # Refresh to show the generated content
+            st.rerun()  # Refresh to show results
         else:
             st.error("Please enter some notes first!")
+    
+    # Show generated outputs if they exist
+    if "generated_outputs" in st.session_state and st.session_state["generated_outputs"]:
+        st.markdown("---")
+        st.subheader("Generated Copy")
+        
+        # Show outputs in a grid
+        cols = st.columns(2)
+        outputs = st.session_state["generated_outputs"]
+        
+        for i, (platform_name, content) in enumerate(outputs.items()):
+            with cols[i % 2]:
+                st.text_area(
+                    f"{platform_name}",
+                    value=content,
+                    height=150,
+                    key=f"output_{platform_name}_{id(content)}"  # Unique key to avoid conflicts
+                )
+        
+        # Download button
+        st.markdown("---")
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col2:
+            file_bytes = outputs_to_txt_bytes(outputs)
+            from datetime import datetime
+            now = datetime.now().strftime("%Y%m%d_%H%M%S")
+            file_name = f"copy_generator_{now}.txt"
+            
+            st.download_button(
+                label="💾 Download All Results",
+                data=file_bytes,
+                file_name=file_name,
+                mime="text/plain",
+                key="download_results"
+            )
+        
+        # Clear results button
+        with col3:
+            if st.button("🗑️ Clear Results", key="clear_results"):
+                del st.session_state["generated_outputs"]
+                st.rerun()
