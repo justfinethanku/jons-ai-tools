@@ -2,6 +2,7 @@
 import streamlit as st
 import io
 import os
+import json
 from notion_client_manager import NotionClientManager
 
 st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
@@ -126,3 +127,101 @@ def universal_ui():
     """Universal elements for all tools"""
     # Add client selection to all tools
     client_selection_sidebar()
+
+def call_openai_api(prompt, model="gpt-4", temperature=0.2):
+    """
+    Call the OpenAI API
+    
+    Args:
+        prompt (str): The prompt to send to OpenAI
+        model (str, optional): The model to use. Defaults to "gpt-4".
+        temperature (float, optional): Controls randomness in generation. Defaults to 0.2.
+        
+    Returns:
+        str: The response from OpenAI
+    """
+    import openai
+    
+    # Configure the client
+    openai.api_key = st.secrets["openai"]["API_KEY"]
+    
+    try:
+        # Make the API call
+        response = openai.ChatCompletion.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=temperature,
+        )
+        
+        # Return the generated text
+        return response.choices[0].message.content
+    
+    except Exception as e:
+        st.error(f"OpenAI API error: {str(e)}")
+        return f"Error calling OpenAI API: {str(e)}"
+
+def call_gemini_api(prompt, response_schema=None, temperature=0.2):
+    """
+    Call Gemini API with support for structured output using responseSchema
+    
+    Args:
+        prompt (str): The prompt to send to Gemini
+        response_schema (dict, optional): Schema for structured output
+        temperature (float, optional): Controls randomness in generation
+        
+    Returns:
+        str: The response from Gemini
+    """
+    import google.generativeai as genai
+    import json
+    from google.api_core import exceptions
+    
+    # Configure the Gemini API client
+    genai.configure(api_key=st.secrets["google"]["GEMINI_API_KEY"])
+    
+    # Create generation config
+    generation_config = {
+        "temperature": temperature,
+        "top_p": 0.95,
+        "top_k": 40,
+        "max_output_tokens": 2048,
+    }
+    
+    # Add response schema if provided
+    if response_schema:
+        generation_config["response_schema"] = response_schema
+        generation_config["response_mime_type"] = "application/json"
+    
+    try:
+        # Create the model
+        model = genai.GenerativeModel(
+            model_name="gemini-1.5-flash",
+            generation_config=generation_config
+        )
+        
+        # Generate content
+        response = model.generate_content(prompt)
+        
+        # Handle structured response
+        if response_schema and hasattr(response, 'candidates') and response.candidates:
+            # Extract JSON response
+            try:
+                # Some versions of the API return the response differently
+                if hasattr(response.candidates[0], 'content') and hasattr(response.candidates[0].content, 'parts'):
+                    json_text = response.candidates[0].content.parts[0].text
+                    return json_text
+                else:
+                    return response.text
+            except Exception as e:
+                st.error(f"Error parsing structured response: {str(e)}")
+                return response.text
+        else:
+            # Return unstructured response
+            return response.text
+    
+    except exceptions.GoogleAPIError as e:
+        st.error(f"Gemini API error: {str(e)}")
+        return f"Error calling Gemini API: {str(e)}"
+    except Exception as e:
+        st.error(f"Unexpected error: {str(e)}")
+        return f"Error: {str(e)}"

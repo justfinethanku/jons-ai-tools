@@ -4,6 +4,7 @@ from frameworks.refiner_framework import run_refiner
 import tools.prompt_refiner as prompt_refiner
 import tools.coder_helper as coder_helper
 from tools import social_copy_tool
+from tools import context_gatherer  # Add this import
 
 # Initialize session state
 if "tool" not in st.session_state:
@@ -14,15 +15,22 @@ universal_ui()
 home_button()
 
 if st.session_state.tool == "home":
-    if st.button("Prompt Refiner"):
-        st.session_state.tool = "Prompt Refiner"
-        st.rerun()
-    if st.button("Coder Helper"):
-        st.session_state.tool = "Coder Helper"
-        st.rerun()
-    if st.button("Copy Generator"):
-        st.session_state.tool = "Copy Generator"
-        st.rerun()
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Prompt Refiner"):
+            st.session_state.tool = "Prompt Refiner"
+            st.rerun()
+        if st.button("Coder Helper"):
+            st.session_state.tool = "Coder Helper"
+            st.rerun()
+    with col2:
+        if st.button("Copy Generator"):
+            st.session_state.tool = "Copy Generator"
+            st.rerun()
+        # Add the Context Gatherer button
+        if st.button("Context Gatherer"):
+            st.session_state.tool = "Context Gatherer"
+            st.rerun()
 
 if st.session_state.tool == "Prompt Refiner":
     run_refiner(
@@ -46,3 +54,7 @@ if st.session_state.tool == "Coder Helper":
 
 if st.session_state.tool == "Copy Generator":
     social_copy_tool.run()
+
+# Add the Context Gatherer tool
+if st.session_state.tool == "Context Gatherer":
+    context_gatherer.run_context_gatherer()
