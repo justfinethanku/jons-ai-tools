@@ -154,7 +154,7 @@ For example:
                     "current_target_audience",
                     "ideal_target_audience",
                     "brand_values",
-                    "brand_mission",
+                    "brand_mission", 
                     "desired_emotional_impact",
                     "brand_personality"
                 ]
