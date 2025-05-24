@@ -4,7 +4,7 @@ from frameworks.refiner_framework import run_refiner
 import tools.prompt_refiner as prompt_refiner
 import tools.coder_helper as coder_helper
 from tools import social_copy_tool
-from tools import context_gatherer  # Add this import
+from tools import brand_builder  # NOTE: Renamed from context_gatherer
 
 # Initialize session state
 if "tool" not in st.session_state:
@@ -27,9 +27,9 @@ if st.session_state.tool == "home":
         if st.button("Copy Generator"):
             st.session_state.tool = "Copy Generator"
             st.rerun()
-        # Add the Context Gatherer button
-        if st.button("Context Gatherer"):
-            st.session_state.tool = "Context Gatherer"
+        # Add the Brand Builder button
+        if st.button("Brand Builder"):
+            st.session_state.tool = "Brand Builder"
             st.rerun()
 
 if st.session_state.tool == "Prompt Refiner":
@@ -55,6 +55,6 @@ if st.session_state.tool == "Coder Helper":
 if st.session_state.tool == "Copy Generator":
     social_copy_tool.run()
 
-# Add the Context Gatherer tool
-if st.session_state.tool == "Context Gatherer":
-    context_gatherer.run_context_gatherer()
+# Add the Brand Builder tool
+if st.session_state.tool == "Brand Builder":
+    brand_builder.run_brand_builder()

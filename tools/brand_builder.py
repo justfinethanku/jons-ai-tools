@@ -1,5 +1,5 @@
 """
-Context Gatherer Tool - First step in the research workflow.
+Brand Builder Tool - First step in the research workflow.
 Collects foundational client information and brand attributes.
 Allows creating new clients and enhancing existing ones.
 
@@ -8,6 +8,9 @@ REFACTORING NOTE: This tool has been updated to use the new modular prompt syste
 - Uses prompt_wrapper for safe transition with fallback capability
 - Temperature and configuration are managed through prompt registry
 - All existing functionality maintained while improving scalability
+
+RENAME NOTE: Formerly known as "Context Gatherer" - renamed to "Brand Builder" 
+for better clarity about the tool's purpose and more appealing branding.
 """
 
 import streamlit as st
@@ -22,7 +25,7 @@ from frameworks import universal_framework, research_tools_framework
 # NOTE: Import new prompt wrapper system for modular prompt management
 from frameworks.prompt_wrappers import prompt_wrapper
 # NOTE: Load prompt configurations to ensure they're registered
-from prompts.structured.configs import context_gatherer_prompts
+from prompts.structured.configs import brand_builder_prompts
 
 def extract_targeted_content(base_url):
     """
@@ -470,9 +473,9 @@ def get_fixed_context_gatherer_schema():
         ]
     }
 
-def run_context_gatherer():
-    st.title("Context Gatherer")
-    st.write("Collect foundational client information and brand attributes")
+def run_brand_builder():
+    st.title("Brand Builder")
+    st.write("Build comprehensive brand profiles and collect foundational client information")
     
     # Initialize Notion database manager
     db_manager = research_tools_framework.NotionDatabaseManager()
@@ -487,11 +490,11 @@ def run_context_gatherer():
         st.info("Please select a client from the sidebar or create a new one to get started.")
         
         # Show instructions for new users
-        with st.expander("How to use the Context Gatherer"):
+        with st.expander("How to use the Brand Builder"):
             st.markdown("""
             ### Getting Started
             
-            The Context Gatherer is the first step in developing a client's brand voice. Here's how to use it:
+            The Brand Builder is the first step in developing a client's brand voice. Here's how to use it:
             
             1. **Create a new client** using the sidebar dropdown
             2. **Fill in the client information** form with as much detail as possible
@@ -932,7 +935,7 @@ def run_context_gatherer():
                 success, error_msg = update_client_with_retry(db_manager, client_page_id, notion_data)
                 
                 if success:
-                    db_manager.mark_tool_complete(client_page_id, "context_gatherer")
+                    db_manager.mark_tool_complete(client_page_id, "brand_builder")
                     st.success("✅ Client profile updated in Notion database")
                     st.info("**Next step:** Use the Content Collector tool to gather content samples across channels.")
                 else:
@@ -979,4 +982,4 @@ def parse_context_output(response):
 
 
 if __name__ == "__main__":
-    run_context_gatherer()
+    run_brand_builder()

@@ -256,7 +256,7 @@ class NotionDatabaseManager:
         """Get completion status of all tools for a client"""
         if not client_page_id:
             return {
-                "context_gatherer": False,
+                "brand_builder": False,
                 "content_collector": False,
                 "voice_auditor": False,
                 "audience_definer": False,
@@ -273,7 +273,7 @@ class NotionDatabaseManager:
             
             # Extract status flags
             status = {
-                "context_gatherer": False,
+                "brand_builder": False,
                 "content_collector": False,
                 "voice_auditor": False,
                 "audience_definer": False,
@@ -285,7 +285,7 @@ class NotionDatabaseManager:
             
             # Map property names to status keys
             prop_map = {
-                "Context_Gatherer_Complete": "context_gatherer",
+                "Brand_Builder_Complete": "brand_builder",
                 "Content_Collector_Complete": "content_collector",
                 "Voice_Auditor_Complete": "voice_auditor",
                 "Audience_Definer_Complete": "audience_definer",
@@ -305,7 +305,7 @@ class NotionDatabaseManager:
             st.error(f"Error retrieving tool completion status: {str(e)}")
             # Return default status (all false)
             return {
-                "context_gatherer": False,
+                "brand_builder": False,
                 "content_collector": False,
                 "voice_auditor": False,
                 "audience_definer": False,
@@ -319,7 +319,7 @@ class NotionDatabaseManager:
         """Mark a specific tool as complete for a client"""
         # Map tool names to property names
         property_map = {
-            "context_gatherer": "Context_Gatherer_Complete",
+            "brand_builder": "Brand_Builder_Complete",
             "content_collector": "Content_Collector_Complete",
             "voice_auditor": "Voice_Auditor_Complete",
             "audience_definer": "Audience_Definer_Complete",
@@ -437,9 +437,9 @@ def client_selector_sidebar(db_manager=None, allow_new_client=False):
             if create_button and new_client_name:
                 # Import analysis functions if website URL provided
                 if website_url.strip():
-                    # Import the analysis functions from context_gatherer
+                    # Import the analysis functions from brand_builder
                     try:
-                        from tools.context_gatherer import extract_website_data, analyze_brand_voice
+                        from tools.brand_builder import extract_website_data, analyze_brand_voice
                         
                         # Step 1: Extract website data
                         with st.spinner("Step 1: Extracting company data from website..."):
@@ -528,7 +528,7 @@ def client_selector_sidebar(db_manager=None, allow_new_client=False):
                     
                     # Return the new client info
                     return new_client_id, new_client_name, {
-                        "context_gatherer": False,
+                        "brand_builder": False,
                         "content_collector": False,
                         "voice_auditor": False,
                         "audience_definer": False,
@@ -559,7 +559,7 @@ def client_selector_sidebar(db_manager=None, allow_new_client=False):
             status_emojis = {True: "✅", False: "⬜"}
             
             tool_labels = [
-                ("context_gatherer", "1. Context Gatherer"),
+                ("brand_builder", "1. Brand Builder"),
                 ("content_collector", "2. Content Collector"),
                 ("voice_auditor", "3. Voice Auditor"),
                 ("audience_definer", "4. Audience Definer"),
@@ -643,9 +643,10 @@ def parse_markdown_table(markdown_table):
     
     return result
 
-def get_context_gatherer_schema():
+def get_brand_builder_schema():
     """
-    Get the schema for Context Gatherer structured output
+    Get the schema for Brand Builder structured output
+    NOTE: Formerly get_context_gatherer_schema - renamed for consistency
     """
     return {
         "type": "object",
