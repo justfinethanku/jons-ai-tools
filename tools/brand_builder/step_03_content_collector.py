@@ -16,6 +16,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from tools.brand_builder import WorkflowStep, WorkflowContext, StepResult
 from frameworks import universal_framework
 from frameworks.prompt_wrappers import prompt_wrapper
+from database_config import CONTENT_SAMPLES_DB_ID, NOTION_API_KEY
+from notion_client import Client
 
 
 class ContentCollectorTool(WorkflowStep):
@@ -32,9 +34,88 @@ class ContentCollectorTool(WorkflowStep):
     def get_output_fields(self):
         return ['content_samples']
     
+    def validate_context(self, context: WorkflowContext) -> tuple[bool, list, list]:
+        """Validate context data and return (is_valid, errors, warnings)"""
+        errors = []
+        warnings = []
+        
+        # Check required fields
+        required_fields = ['client_name']
+        for field in required_fields:
+            if not context.get(field):
+                errors.append(f"Missing required field: {field}")
+        
+        # Check recommended fields for quality
+        recommended_fields = {
+            'industry': 'Industry context helps generate relevant content strategies',
+            'product_service_description': 'Product/service description improves content targeting',
+            'brand_mission': 'Brand mission guides content strategy direction',
+            'ideal_target_audience': 'Target audience data improves content channel selection'
+        }
+        
+        for field, reason in recommended_fields.items():
+            if not context.get(field):
+                warnings.append(f"Missing recommended field '{field}': {reason}")
+        
+        return len(errors) == 0, errors, warnings
+    
+    def format_for_database(self, content_samples, client_id):
+        """Format content samples for Content Samples database"""
+        formatted_samples = []
+        
+        for sample in content_samples:
+            # Convert to database format
+            formatted_sample = {
+                "Client": {"id": client_id},  # Relation to AI Client Library
+                "Channel": {"rich_text": [{"text": {"content": sample.get('channel', '')}}]},
+                "Content Type": {"rich_text": [{"text": {"content": sample.get('content_type', '')}}]},
+                "Description": {"rich_text": [{"text": {"content": sample.get('sample_description', '')}}]},
+                "Strategic Notes": {"rich_text": [{"text": {"content": sample.get('strategic_notes', '')}}]}
+            }
+            formatted_samples.append(formatted_sample)
+        
+        return formatted_samples
+    
+    def save_to_content_samples_database(self, content_samples, client_id):
+        """Save content samples to Content Samples database"""
+        if not CONTENT_SAMPLES_DB_ID or not NOTION_API_KEY:
+            return None, "Content Samples database not configured"
+        
+        try:
+            notion = Client(auth=NOTION_API_KEY)
+            
+            # Format samples for database
+            formatted_samples = self.format_for_database(content_samples, client_id)
+            
+            # Save each sample as a separate record
+            created_ids = []
+            for sample in formatted_samples:
+                response = notion.pages.create(
+                    parent={"database_id": CONTENT_SAMPLES_DB_ID},
+                    properties=sample
+                )
+                created_ids.append(response["id"])
+            
+            return created_ids, None
+            
+        except Exception as e:
+            return None, f"Failed to save to Content Samples database: {str(e)}"
+    
     def execute(self, context: WorkflowContext) -> StepResult:
         """Execute content collection"""
+        # Validate context first
+        is_valid, errors, warnings = self.validate_context(context)
+        if not is_valid:
+            return StepResult(
+                success=False,
+                data={},
+                errors=errors,
+                warnings=warnings,
+                step_name=self.name
+            )
+        
         client_name = context.get('client_name')
+        client_id = context.get('client_id')  # Get client ID for database relation
         
         # Build context from brand data
         brand_context = f"""
@@ -93,11 +174,25 @@ class ContentCollectorTool(WorkflowStep):
             
             result_data = json.loads(response)
             
+            # Save to Content Samples database if client_id is available
+            if client_id and 'content_samples' in result_data:
+                created_ids, db_error = self.save_to_content_samples_database(
+                    result_data['content_samples'], 
+                    client_id
+                )
+                
+                if db_error:
+                    warnings.append(f"Database save failed: {db_error}")
+                else:
+                    print(f"✅ Saved {len(created_ids)} content samples to Content Samples database")
+            elif not client_id:
+                warnings.append("No client_id provided - content samples not saved to database")
+            
             return StepResult(
                 success=True,
                 data=result_data,
                 errors=[],
-                warnings=[],
+                warnings=warnings,
                 step_name=self.name
             )
             

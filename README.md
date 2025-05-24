@@ -1,219 +1,123 @@
 # Jon's AI Tools
 
-## Overview
+## Technical Overview
 
-Jon's AI Tools is a comprehensive AI-powered brand research and content creation toolkit designed for marketers, agencies, and content creators. Built with Streamlit and powered by Google Gemini 2.5 Flash, it features a revolutionary modular prompt system, sophisticated brand voice analysis, and automated content generation capabilities.
+AI-powered toolkit for brand research and content generation. Built with Streamlit, Python, and Google Gemini 2.5 Flash. Features modular prompt architecture, Notion database integration, and systematic workflow orchestration.
 
-The toolkit combines intelligent website analysis, brand voice development, and multi-platform content creation—all while maintaining each client's unique brand identity through seamless Notion integration and cutting-edge prompt architecture.
-
----
-
-## 🚀 What Can You Do with This Toolkit?
-
-### **Brand Builder** - Next-Generation Brand Research
-*The foundation of all brand-focused content creation*
-
-- **Advanced Two-Step AI Analysis**: Automatically extracts company data from websites and develops comprehensive brand voice profiles using modular prompt components
-- **Intelligent Multi-Page Scraping**: Crawls homepage, about, contact, mission, and services pages with sophisticated content extraction algorithms
-- **30+ Strategic Data Points**: Industry analysis, target audiences, brand values, personality traits, competitive differentiation, messaging priorities, and complete contact information
-- **Professional AI Personas**: Leverages business analyst and brand strategist roles through our structured 5W prompt system (WHO-WHAT-HOW-WHY-FORMAT)
-- **Seamless Notion Integration**: Automatically populates client profiles with extracted data for immediate use across all tools
-- **Modular Prompt Architecture**: Built on reusable, validated prompt components for consistent, high-quality results
-
-**Real Output Example:**
-- **Industry**: "Artificial Intelligence Safety and Research"
-- **Brand Values**: ['Safety', 'Responsibility', 'Transparency', 'Human-centricity', 'Innovation']
-- **Target Audience**: "Leading AI researchers, policymakers, enterprise decision-makers concerned with responsible AI development..."
-- **Brand Personality**: ['Intelligent', 'Trustworthy', 'Forward-thinking', 'Ethical', 'Collaborative']
-- **Competitive Differentiation**: "Focus on safety-first AI development with transparent research practices"
-
-### **Copy Generator** - Multi-Platform Content Creation
-*Transform any content into platform-optimized social media posts*
-
-- **Universal Input Processing**: Upload scripts, paste transcripts, or provide content notes
-- **Platform-Specific Optimization**: Generates Facebook, LinkedIn, TikTok, YouTube, and generic social posts
-- **Brand-Aware Content Generation**: Automatically applies selected client's brand voice, tone, and strategic messaging
-- **Best Practice Implementation**: Follows character limits, hashtag strategies, and engagement optimization
-- **Batch Export Capability**: Download all generated content in organized, ready-to-use text files
-
-### **Prompt Refiner** - Advanced Prompt Engineering
-*Iteratively improve AI prompts using proven methodologies*
-
-- **Intelligent Prompt Enhancement**: Transform rough ideas into structured, effective AI instructions
-- **Role-Based Optimization**: Adds appropriate roles, contexts, and formatting for optimal AI performance
-- **Dynamic Revision System**: Request specific changes ("make it shorter", "add examples") for real-time improvements
-- **Technical Specialization**: Focused mode for coding and technical prompt optimization
-
-### **Coder Helper** - Technical Prompt Assistance
-*Specialized tool for development and technical scenarios*
-
-- **Code-Focused Refinement**: Optimizes prompts for programming tasks and technical documentation
-- **Clear Explanation Generation**: Provides comprehensive explanations of complex technical prompts
-- **Streamlined Development Workflow**: Rapid prompt iteration designed for technical contexts
+**Current Status**: Undergoing systematic Brand Builder audit and database integration fixes.
 
 ---
 
-## 🏗️ Revolutionary Prompt Architecture
+## Core Tools
 
-### **Modular 5W System**
-Our groundbreaking prompt architecture uses structured components:
+### **Brand Builder** - 9-Step Workflow System
+Modular brand research and analysis pipeline with Notion database integration.
 
-- **WHO**: Role and persona definitions (business_analyst_expert, brand_strategist_senior)
-- **WHAT**: Task and objective specifications (extract_company_data, analyze_brand_voice)
-- **HOW**: Methodology and instruction components (using_website_content, structured_analysis)
-- **WHY**: Context and motivation elements (for_marketing_strategy, brand_consistency)
-- **FORMAT**: Output structure specifications (json_schema, markdown_table)
+**Architecture**: WorkflowStep base class with individual step files, CLI interfaces, and workflow orchestration.
 
-### **Smart Component Assembly**
-```python
-# Example: Brand Builder website extraction
-PROMPT = StructuredPrompt([
-    "who.business_analyst_expert",
-    "what.extract_company_data", 
-    "how.using_website_content",
-    "why.for_marketing_strategy",
-    "format.as_json_schema"
-])
-```
+**Steps**:
+1. **Website Analyzer** - Multi-page content extraction and processing
+2. **Brand Analyzer** - ✅ Fixed (database integration, validation, schema alignment)
+3. **Content Collector** - 🔄 Partial fixes (database integration added, testing needed)
+4. **Voice Auditor** - ❓ Pending audit
+5. **Audience Definer** - ❓ Pending audit
+6. **Voice Traits Builder** - ❓ Pending audit
+7. **Gap Analyzer** - ❓ Pending audit
+8. **Content Rewriter** - ❓ Pending audit
+9. **Final Report Generator** - ❓ Pending audit
 
-### **Built-in Quality Assurance**
-- **Mandatory Completeness**: All 5W components required for prompt validation
-- **Fallback Systems**: Automatic fallback to proven prompts if new system fails
-- **Temperature Optimization**: Component-specific temperature settings (0.3 for extraction, 0.7 for analysis)
-- **Comprehensive Testing**: Every prompt component validated before deployment
+**Database Integration**: 4 connected Notion databases (AI Client Library, Voice Guidelines, Content Samples, Project Tracker)
 
----
+### **Copy Generator** - Social Media Content Generation
+Platform-specific content adaptation with brand voice consistency.
 
-## 🎯 Who Is It For?
+**Platforms**: Facebook, LinkedIn, TikTok, YouTube, Generic
+**Features**: Character limits, hashtag optimization, brand voice application
 
-### **Marketing Agencies & Freelancers**
-- Manage multiple client brand voices from a centralized, intelligent system
-- Generate consistently on-brand content across all platforms instantly
-- Scale content production without sacrificing brand authenticity
-- Comprehensive automated client research and brand development
+### **Prompt Refiner** - Prompt Engineering Tool
+Iterative prompt improvement using structured methodologies.
 
-### **Content Creators & Video Producers**
-- Transform video content into cohesive multi-platform social media campaigns
-- Maintain perfect brand voice consistency across all content formats
-- Automate repetitive content adaptation while preserving creative quality
-
-### **Prompt Engineers & Technical Teams**
-- Document and systematically refine prompts using proven 5W methodology
-- Build reusable libraries of tested, optimized prompt components
-- Implement scalable prompt management for internal AI tools
-
-### **Small Businesses & Startups**
-- Develop professional-grade brand voice profiles from just a website URL
-- Create comprehensive content strategies without expensive agency fees
-- Maintain polished brand presence across all digital channels
+### **Coder Helper** - Technical Prompt Optimization
+Specialized for development and technical documentation tasks.
 
 ---
 
-## 🔄 Real-World Workflow Example
+## Prompt Architecture
 
-### 1. **Automated Brand Research (Brand Builder)**
-Start with just a company website:
+### **Tiered System**
+- **Structured (5W)**: Complex analysis, research (WHO-WHAT-HOW-WHY-FORMAT components)
+- **Simple**: Quick operations, validations (template substitution)
+- **Creative**: Brainstorming, ideation (flexible mix-and-match)
+
+### **Current Implementation**
+- Brand Builder uses structured 5W system with modular prompt components
+- Fallback systems ensure reliability when new architecture fails
+- Temperature optimization per component type (0.3 extraction, 0.7 analysis)
+
+### **Component Library**
 ```
-Input: https://anthropic.com
-Process: Modular 5W prompt system automatically:
-  - Extracts comprehensive company data
-  - Analyzes brand voice and positioning
-  - Identifies target audiences and messaging
-  - Maps competitive differentiation
-
-Output: Complete brand profile with 30+ strategic fields including:
-- Industry analysis and positioning
-- Current vs. ideal target audience segmentation  
-- Brand values, mission, and personality traits
-- Communication tone and voice characteristics
-- Competitive differentiation strategies
-- Complete contact and social media information
-- Content themes and messaging priorities
-```
-
-### 2. **Content Creation Pipeline**
-```
-Video Script/Transcript → Copy Generator → Platform-Optimized Posts
-
-Input: "Today we're launching our new AI safety research initiative..."
-
-Brand Builder Integration: Automatically applies client's:
-- Brand voice and personality traits
-- Target audience preferences  
-- Messaging priorities and values
-- Communication tone guidelines
-
-Output:
-- Facebook: Engaging hook with visual call-to-action, brand-appropriate tone
-- LinkedIn: Professional thought leadership angle with industry positioning
-- TikTok: Trendy, accessible explanation maintaining brand authenticity
-- YouTube: SEO-optimized description with strategic keyword integration
-```
-
-### 3. **Advanced Prompt Engineering Workflow**
-```
-Rough Idea → Prompt Refiner → Optimized 5W Instruction
-
-Input: "Make a summary of this article"
-
-5W Enhancement Process:
-- WHO: Professional content strategist persona
-- WHAT: Comprehensive article analysis and summarization
-- HOW: Structured methodology with specific steps
-- WHY: Strategic content development and audience engagement
-- FORMAT: Detailed output specifications and formatting
-
-Output: "You are a professional content strategist specializing in audience engagement. Analyze the provided article and create a comprehensive summary that includes: [detailed role-based instructions, step-by-step methodology, strategic context, and specific formatting requirements]"
+prompts/structured/components/
+├── who_business_analyst_expert.py
+├── what_extract_company_data.py
+├── how_using_website_content.py
+├── why_for_marketing_strategy.py
+└── format_as_json_schema.py
 ```
 
 ---
 
-## ✨ Why Choose Jon's AI Tools?
+## Current Development Status
 
-### **🤖 Advanced AI Integration**
-- **Google Gemini 2.5 Flash**: Latest AI model for superior analysis and content generation
-- **Intelligent Temperature Control**: Precise optimization (0.3 for data extraction, 0.7 for creative tasks)
-- **Structured JSON Outputs**: Reliable, consistent data extraction with schema validation
-- **Multi-step Analysis Workflows**: Complex processes broken into manageable, accurate components
+### **Systematic Brand Builder Audit (In Progress)**
 
-### **🏗️ Revolutionary Architecture**
-- **Modular 5W Prompt System**: Reusable, validated components for consistent high-quality results
-- **Automatic Fallback Protection**: Built-in backup systems ensure zero downtime
-- **Component-Level Testing**: Every prompt element validated before deployment
-- **Scalable Design**: Easy extension with new tools and capabilities
+**Problem**: Critical database integration failures and schema mismatches across Brand Builder steps.
 
-### **🎨 Brand-First Methodology**
-- **Strategic Brand Analysis**: Goes beyond demographics to comprehensive positioning frameworks
-- **Voice Consistency Engine**: Maintains authentic brand identity across all content and platforms
-- **Professional Brand Strategy**: Uses proven methodologies from top-tier agencies
-- **Unlimited Client Management**: Scale to any number of brand profiles with consistent quality
+**Solution**: Systematic audit and fix of all 9 workflow steps.
 
-### **🔧 Technical Excellence**
-- **Production-Ready Architecture**: Built for scale with comprehensive error handling
-- **Seamless Notion Integration**: Sophisticated database management for client profiles
-- **Comprehensive Validation**: Multi-layer testing ensures reliable operation
-- **Developer-Friendly**: Clean, documented code with extensive commenting
+### **Completed Fixes**
+- ✅ **Step 2: Brand Analyzer** - Full database integration, context validation, schema alignment
+  - Added Voice Guidelines database saving
+  - Implemented comprehensive input validation
+  - Fixed rich_text field formatting
+  - All tests passing with successful database saving
 
-### **💡 Transparency & Control**
-- **Complete Prompt Visibility**: Full access to all AI instructions and components
-- **Human Oversight Integration**: Review and edit all outputs before deployment
-- **Iterative Improvement System**: Continuous refinement of prompts and processes
-- **Data Ownership**: Your client data remains in your controlled environment
+### **In Progress**
+- 🔄 **Step 3: Content Collector** - Database integration added, testing needed
+  - Added Content Samples database connection
+  - Implemented save_to_content_samples_database() function
+  - Added context validation and client relationship linking
+  - Requires testing and validation
+
+### **Pending Audit**
+- ❓ **Steps 4-9**: Voice Auditor, Audience Definer, Voice Traits Builder, Gap Analyzer, Content Rewriter, Final Report Generator
+
+### **Critical Issues Resolved**
+1. **JSON Parsing Errors**: Fixed max_output_tokens causing response truncation
+2. **Database Schema Mismatches**: Aligned output formats with Notion field types
+3. **Missing Database Integration**: Added proper Notion client connections
+4. **Context Validation**: Implemented comprehensive input validation systems
+
+### **Files Created/Modified**
+- `brand_builder_audit_plan.md` - Comprehensive audit framework
+- `step_02_audit_results.md` - Step 2 analysis and fixes
+- `step_03_audit_results.md` - Step 3 critical issues identification
+- `tools/brand_builder/step_02_brand_analyzer.py` - Full database integration
+- `tools/brand_builder/step_03_content_collector.py` - Partial fixes implemented
 
 ---
 
-## 🚀 Getting Started
+## Setup
 
-1. **Clone the Repository**
+1. **Clone Repository**
    ```bash
    git clone [repository-url]
    cd jons-ai-tools
    ```
 
-2. **Set Up Secrets** 
+2. **Configure Secrets**
    ```bash
    cp .streamlit/secrets.toml.template .streamlit/secrets.toml
-   # Add your Gemini API key and Notion credentials
+   # Add Gemini API key and Notion credentials
    ```
 
 3. **Install Dependencies**
@@ -221,51 +125,53 @@ Output: "You are a professional content strategist specializing in audience enga
    pip install -r requirements.txt
    ```
 
-4. **Configure Notion**: Set up the AI Client Library database using the provided schema
-
-5. **Launch Application**
+4. **Launch Application**
    ```bash
    streamlit run app.py
    ```
 
-6. **Start Building Brands**: Use Brand Builder to automatically research and profile new clients
+---
 
-7. **Generate Content**: Select clients and create platform-optimized content instantly
+## Database Schema
+
+### **Notion Databases (4 Connected)**
+1. **AI Client Library** - Main client records
+2. **Voice Guidelines** - Brand analysis results (Step 2 output)
+3. **Content Samples** - Content strategy data (Step 3 output)
+4. **Project Tracker** - Workflow progress tracking
+
+### **Relationships**
+- Voice Guidelines → AI Client Library (Many-to-One)
+- Content Samples → AI Client Library (Many-to-One)
+- Project Tracker → AI Client Library (Many-to-One)
 
 ---
 
-## 🛡️ Security & Best Practices
+## Development Roadmap
 
-- **Secure Secret Management**: API keys stored safely in `.streamlit/secrets.toml` (git-ignored)
-- **Zero Data Persistence**: Sensitive data never leaves your controlled environment
-- **Private Notion Integration**: Client data stored exclusively in your Notion workspace
-- **Template-Based Setup**: Comprehensive security guides for API key management
-- **Fallback Protection**: Multiple backup systems prevent data loss or system failures
+### **Immediate (Next Session)**
+1. Test Step 3: Content Collector fixes
+2. Complete Step 3 validation and database saving verification
+3. Begin Step 4: Voice Auditor audit
 
----
+### **Short Term**
+1. Complete systematic audit of Steps 4-9
+2. Fix database integration issues across all steps
+3. Implement integration testing for sequential workflows
 
-## 🔄 Recent Major Updates
-
-### **Brand Builder Stability & Error Resolution (Latest)**
-- **Critical Bug Fixes**: Resolved persistent JSON parsing errors that were blocking workflow completion
-- **API Error Handling**: Added robust error detection to prevent "No JSON structure found" failures
-- **Database Integration Fixes**: Resolved Notion database update issues and silent failures
-- **Completion Tracking**: Fixed "property does not exist" errors for tool completion tracking
-- **Improved Reliability**: Enhanced error handling throughout the workflow for seamless user experience
-
-### **Brand Builder Enhancement**
-- **Complete Tool Rename**: "Context Gatherer" → "Brand Builder" for better clarity and appeal
-- **Modular Prompt System**: Revolutionary 5W architecture for consistent, high-quality results
-- **Enhanced Brand Analysis**: Deeper strategic insights and competitive positioning
-- **Improved Scalability**: Easier to extend and maintain with component-based design
-
-### **Technical Architecture Improvements**
-- **Structured Component Library**: Reusable prompt elements across all tools
-- **Automatic Validation**: Built-in quality assurance for all AI interactions
-- **Temperature Optimization**: Component-specific settings for optimal results
-- **Comprehensive Fallbacks**: Zero-downtime operation with automatic backup systems
-- **Robust Error Recovery**: Multiple layers of error handling for production stability
+### **Long Term**
+1. Scale modular prompt system to Copy Generator and Prompt Refiner
+2. Implement Simple tier for utility functions
+3. Build Creative tier for brainstorming tools
+4. Performance optimization and error handling improvements
 
 ---
 
-*Built for creators who demand both AI efficiency and brand authenticity. Now with revolutionary prompt architecture for unmatched consistency and quality.*
+## Key Technical Files
+
+- `tools/brand_builder/` - Modular workflow steps
+- `prompts/structured/components/` - 5W prompt component library
+- `frameworks/` - Universal prompt framework and AI integrations
+- `database_config.py` - Centralized Notion database configuration
+- `brand_builder_audit_plan.md` - Systematic review framework
+- `CLAUDE.md` - Development session documentation and architecture philosophy

@@ -17,6 +17,80 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from tools.brand_builder import WorkflowStep, WorkflowContext, StepResult
 from frameworks import universal_framework, research_tools_framework
 from frameworks.prompt_wrappers import prompt_wrapper
+from database_config import VOICE_GUIDELINES_DB_ID, NOTION_API_KEY
+from notion_client import Client
+
+
+def format_for_database(result_data):
+    """
+    Convert arrays to comma-separated strings for database storage
+    
+    Args:
+        result_data: Raw analysis results with arrays
+        
+    Returns:
+        dict: Formatted data for database storage
+    """
+    formatted = {}
+    for key, value in result_data.items():
+        if isinstance(value, list):
+            formatted[key] = ", ".join(str(item) for item in value)
+        else:
+            formatted[key] = str(value) if value is not None else ""
+    return formatted
+
+
+def save_to_voice_guidelines_database(client_name, analysis_data):
+    """
+    Save brand analysis results to Voice Guidelines database
+    
+    Args:
+        client_name: Name of the client
+        analysis_data: Formatted analysis results
+        
+    Returns:
+        bool: Success status
+    """
+    try:
+        if not VOICE_GUIDELINES_DB_ID or not NOTION_API_KEY:
+            print("⚠️ Voice Guidelines database not configured")
+            return False
+            
+        notion = Client(auth=NOTION_API_KEY)
+        
+        # Create Voice Guidelines record
+        response = notion.pages.create(
+            parent={"database_id": VOICE_GUIDELINES_DB_ID},
+            properties={
+                "Name": {
+                    "title": [{"text": {"content": f"{client_name} - Brand Analysis"}}]
+                },
+                "Status": {
+                    "select": {"name": "In Progress"}
+                },
+                "Tone_Description": {
+                    "rich_text": [{"text": {"content": analysis_data.get("communication_tone", "")}}]
+                },
+                "Word_Choice_Guidelines": {
+                    "rich_text": [{"text": {"content": f"Use: {analysis_data.get('content_themes', '')}. Avoid: {analysis_data.get('words_tones_to_avoid', '')}"}}]
+                },
+                # Note: These should be multi_select but database might not have options configured
+                # Using rich_text as fallback to avoid field type errors
+                "Word_Choice_Analysis": {
+                    "rich_text": [{"text": {"content": f"Voice Characteristics: {analysis_data.get('voice_characteristics', '')}\\nPersonality Traits: {analysis_data.get('brand_personality_traits', '')}"}}]
+                },
+                "Recommendations": {
+                    "rich_text": [{"text": {"content": f"Brand Mission: {analysis_data.get('brand_mission', '')}\\nValue Proposition: {analysis_data.get('value_proposition', '')}\\nMessaging Priorities: {analysis_data.get('messaging_priorities', '')}"}}]
+                }
+            }
+        )
+        
+        print(f"✅ Saved brand analysis to Voice Guidelines database: {response['id']}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Failed to save to Voice Guidelines database: {str(e)}")
+        return False
 
 
 def robust_json_parse(response_text):
@@ -91,36 +165,66 @@ class BrandAnalyzerTool(WorkflowStep):
             'content_themes', 'words_tones_to_avoid', 'messaging_priorities'
         ]
     
+    def validate_context(self, context: WorkflowContext):
+        """
+        Validate required context data and warn about missing optional data
+        
+        Args:
+            context: WorkflowContext with input data
+            
+        Returns:
+            list: Warning messages for missing optional data
+            
+        Raises:
+            ValueError: If required data is missing
+        """
+        warnings = []
+        
+        # Check required inputs
+        if not context.get('client_name'):
+            raise ValueError("client_name is required for brand analysis")
+        
+        # Check optional but recommended inputs from Step 1
+        step1_fields = ['industry', 'company_description', 'key_products_services', 
+                       'target_markets', 'geographical_presence', 'company_size_indicators']
+        
+        missing_step1_data = [field for field in step1_fields if not context.get(field)]
+        
+        if missing_step1_data:
+            warnings.append(f"Missing website data from Step 1: {', '.join(missing_step1_data)}. Analysis will be less comprehensive.")
+        
+        # Check if we have any data at all to work with
+        has_website_data = any(context.get(field) for field in step1_fields)
+        has_form_data = any(context.get(field) for field in ['product_service_description', 'current_target_audience'])
+        
+        if not has_website_data and not has_form_data:
+            warnings.append("No website or form data available. Analysis will be based on client name only.")
+        
+        return warnings
+    
     def execute(self, context: WorkflowContext) -> StepResult:
         """Execute brand voice analysis"""
-        client_name = context.get('client_name')
-        
-        # Get website data from Step 1 if available
-        website_data = {}
-        for field in ['industry', 'company_description', 'key_products_services', 
-                     'target_markets', 'geographical_presence', 'company_size_indicators']:
-            if context.get(field):
-                website_data[field] = context.get(field)
-        
-        # Get form data if available
-        form_data = {}
-        for field in ['product_service_description', 'current_target_audience', 'ideal_target_audience',
-                     'brand_values', 'brand_mission', 'desired_emotional_impact', 
-                     'brand_personality', 'words_tones_to_avoid']:
-            if context.get(field):
-                form_data[field] = context.get(field)
-        
         try:
-            # Build rich input from website data
-            website_context = f"""
-**COMPANY OVERVIEW:**
-- Name: {client_name}
-- Industry: {website_data.get('industry', 'Unknown')}
-- Description: {website_data.get('company_description', 'Not available')}
-- Products/Services: {', '.join(website_data.get('key_products_services', []))}
-- Target Markets: {', '.join(website_data.get('target_markets', []))}
-- Geographical Presence: {website_data.get('geographical_presence', 'Not specified')}
-- Company Size Indicators: {website_data.get('company_size_indicators', 'Not specified')}"""
+            # Validate context and get warnings
+            warnings = self.validate_context(context)
+            client_name = context.get('client_name')
+            
+            # Get website data from Step 1 if available
+            website_data = {}
+            for field in ['industry', 'company_description', 'key_products_services', 
+                         'target_markets', 'geographical_presence', 'company_size_indicators']:
+                if context.get(field):
+                    website_data[field] = context.get(field)
+            
+            # Get form data if available
+            form_data = {}
+            for field in ['product_service_description', 'current_target_audience', 'ideal_target_audience',
+                         'brand_values', 'brand_mission', 'desired_emotional_impact', 
+                         'brand_personality', 'words_tones_to_avoid']:
+                if context.get(field):
+                    form_data[field] = context.get(field)
+            
+            # Get prompt and temperature from modular system
             
             # Get prompt and temperature from modular system
             prompt, temperature = prompt_wrapper.get_brand_voice_analysis_prompt(
@@ -179,14 +283,31 @@ class BrandAnalyzerTool(WorkflowStep):
             # Combine with website data if available
             final_data = {**website_data, **result_data}
             
+            # Format data for database storage and save to Voice Guidelines
+            formatted_data = format_for_database(result_data)
+            database_success = save_to_voice_guidelines_database(client_name, formatted_data)
+            
+            # Add database save status to warnings if failed
+            if not database_success:
+                warnings.append("Failed to save analysis to Voice Guidelines database")
+            
             return StepResult(
                 success=True,
                 data=final_data,
                 errors=[],
-                warnings=[],
+                warnings=warnings,
                 step_name=self.name
             )
             
+        except ValueError as e:
+            # Context validation error
+            return StepResult(
+                success=False,
+                data={},
+                errors=[str(e)],
+                warnings=[],
+                step_name=self.name
+            )
         except Exception as e:
             return StepResult(
                 success=False,
