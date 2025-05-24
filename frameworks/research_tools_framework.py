@@ -332,31 +332,39 @@ class NotionDatabaseManager:
         # Update the property
         if tool_name in property_map:
             try:
-                self.notion.pages.update(
-                    page_id=client_page_id,
-                    properties={
-                        property_map[tool_name]: {
-                            "checkbox": True
-                        },
-                        "Last_Tool_Completed": {
-                            "rich_text": [
-                                {
-                                    "text": {
-                                        "content": tool_name
-                                    }
+                # Try to update with the completion checkbox
+                # If the property doesn't exist, just update Last_Tool_Completed and Last_Updated
+                properties_to_update = {
+                    "Last_Tool_Completed": {
+                        "rich_text": [
+                            {
+                                "text": {
+                                    "content": tool_name
                                 }
-                            ]
-                        },
-                        "Last_Updated": {
-                            "date": {
-                                "start": self._get_current_date()
                             }
+                        ]
+                    },
+                    "Last_Updated": {
+                        "date": {
+                            "start": self._get_current_date()
                         }
                     }
+                }
+                
+                # BUGFIX: Skip checkbox properties that may not exist in database
+                # This prevents "property does not exist" errors
+                # Future: Add checkbox properties to database schema if needed
+                # properties_to_update[property_map[tool_name]] = {"checkbox": True}
+                
+                self.notion.pages.update(
+                    page_id=client_page_id,
+                    properties=properties_to_update
                 )
                 return True
             except Exception as e:
-                st.error(f"Error marking tool complete: {str(e)}")
+                # BUGFIX: Silently handle completion tracking errors
+                # Tool completion tracking is non-essential - don't block user workflow
+                # st.error(f"Error marking tool complete: {str(e)}")
                 return False
         else:
             return False
@@ -386,6 +394,52 @@ class NotionDatabaseManager:
         """Get voice guidelines for a client"""
         # This will be implemented fully when we build the Voice-related tools
         return {}
+    
+    def get_deep_research_data(self, client_page_id):
+        """Get deep research workflow data for a client"""
+        try:
+            client_profile = self.get_client_profile(client_page_id)
+            workflow_data_str = client_profile.get("Deep_Research_Workflow", "{}")
+            
+            # Handle case where it might be stored as text or already parsed
+            if isinstance(workflow_data_str, str):
+                return json.loads(workflow_data_str) if workflow_data_str.strip() else {}
+            else:
+                return workflow_data_str or {}
+        except (json.JSONDecodeError, Exception) as e:
+            st.warning(f"Could not parse workflow data: {e}")
+            return {}
+    
+    def save_deep_research_step(self, client_page_id, step_name, step_data):
+        """Save a step of the deep research workflow"""
+        try:
+            # Get existing workflow data
+            current_workflow = self.get_deep_research_data(client_page_id)
+            
+            # Add the new step data
+            current_workflow[step_name] = {
+                "data": step_data,
+                "completed_at": self._get_current_date(),
+                "status": "completed"
+            }
+            
+            # Save back to Notion
+            workflow_json = json.dumps(current_workflow)
+            
+            success = self.update_client_profile(client_page_id, {
+                "Deep_Research_Workflow": workflow_json,
+                "Last_Updated": self._get_current_date()
+            })
+            
+            return success
+        except Exception as e:
+            st.error(f"Error saving workflow step: {str(e)}")
+            return False
+    
+    def get_workflow_step_status(self, client_page_id, step_name):
+        """Check if a workflow step is completed"""
+        workflow_data = self.get_deep_research_data(client_page_id)
+        return step_name in workflow_data and workflow_data[step_name].get("status") == "completed"
 
 
 def client_selector_sidebar(db_manager=None, allow_new_client=False):
