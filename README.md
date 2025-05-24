@@ -1,79 +1,167 @@
+# Jon's AI Tools
 
+## Overview
 
-Jon’s AI Tools
+Jon's AI Tools is a comprehensive AI-powered brand research and content creation toolkit designed for marketers, agencies, and content creators. Built with Streamlit and powered by Google Gemini 2.5 Flash, it provides sophisticated brand voice analysis, automated content generation, and advanced prompt engineering capabilities.
 
-Overview
+The toolkit combines intelligent website analysis, brand voice development, and multi-platform content creation—all while maintaining each client's unique brand identity through integration with a Notion-based AI Client Library.
 
-Jon’s AI Tools is a modular, AI-powered content and workflow toolkit for content creators, video producers, marketers, and prompt engineers. It leverages large language models (OpenAI GPT-4 and Google PaLM/Gemini) through Streamlit to assist with prompt engineering and content generation tasks.
+---
 
-The toolkit refines rough prompts into polished ones, explains complex prompts, generates social media copy across multiple platforms, and more – all while maintaining each client’s unique brand voice and tone.
+## 🚀 What Can You Do with This Toolkit?
 
-By integrating with a Notion database called the AI Client Library for client profiles, the tools can automatically tailor outputs to a selected client’s industry, style, and keywords, ensuring consistency and personalization in generated content.
+### **Context Gatherer** - Advanced Brand Research
+*The foundation of all brand-focused content creation*
 
-⸻
+- **Two-Step AI Analysis**: Automatically extracts company data from websites and develops comprehensive brand voice profiles
+- **Multi-Page Website Scraping**: Intelligently crawls homepage, about, contact, mission, and services pages for complete company insights  
+- **30+ Data Points Extracted**: Industry, target audiences, brand values, personality traits, competitive differentiation, messaging priorities, and contact information
+- **Professional Role-Based AI**: Uses business analyst and brand strategist personas for accurate, strategic insights
+- **Notion Integration**: Automatically populates client profiles with extracted data for immediate use across all tools
 
-What Can You Do with This Toolkit?
-	•	Prompt Refiner:
-Improve any AI prompt iteratively. Enter a rough draft prompt and get back a clearer, more effective version. Request specific revisions (e.g. “make it shorter”, “add a friendly tone”) and the tool will refine the prompt in real-time.
-Ideal for prompt engineers optimizing prompts for better AI responses.
-	•	Coder Helper:
-Similar to Prompt Refiner but geared toward coding scenarios or technical prompts. Refines prompts for clarity and can provide an explanation of what the prompt does.
-Great for understanding complex prompts or improving instructions for code generation.
-	•	Copy Generator:
-Turn a video script, podcast outline, or any content notes into ready-to-use social media posts for every major platform in one click. Provide your notes or upload a text file, and the tool produces platform-optimized copy for Facebook, LinkedIn, TikTok, YouTube, and a generic version.
-Each post adheres to best practices (character limits, hashtag style, tone), saving hours of work.
-	•	Extensible Modules:
-More modules are coming (and you can extend it yourself). Future additions may include an email/newsletter generator, SEO content optimizer, or analytics insights tool.
-Design is modular – each tool is a self-contained script that plugs into the Streamlit app, so new features can be added without affecting existing ones.
+**Real Output Example:**
+- **Industry**: "Artificial Intelligence Safety and Research"
+- **Brand Values**: ['Safety', 'Responsibility', 'Transparency', 'Human-centricity', 'Innovation']
+- **Target Audience**: "Leading AI researchers, policymakers, enterprise decision-makers..."
+- **Brand Personality**: ['Intelligent', 'Trustworthy', 'Forward-thinking', 'Ethical', 'Collaborative']
 
-⸻
+### **Copy Generator** - Multi-Platform Content Creation
+*Transform any content into platform-optimized social media posts*
 
-Who Is It For?
+- **Universal Input**: Upload scripts, paste transcripts, or provide content notes
+- **Platform Optimization**: Generates Facebook, LinkedIn, TikTok, YouTube, and generic social posts
+- **Client-Aware Generation**: Automatically applies selected client's brand voice, tone, and keywords
+- **Best Practice Implementation**: Follows character limits, hashtag strategies, and engagement optimization
+- **Batch Export**: Download all generated content in organized text files
 
-This repository is for creators and teams who regularly produce content and interact with AI. If you’re a video producer needing social copy, a marketing agency personalizing content for multiple clients, or a prompt engineer refining prompts for reliable AI output, Jon’s AI Tools can help.
-	•	Control: You review and edit AI outputs before using them.
-	•	Agencies & Freelancers: Use the Notion integration to keep a database of client profiles (brand voice, audience, etc.) and generate on-brand content instantly.
-	•	Technical Teams: The prompt engineering tools help document and fine-tune prompts for internal AI tools.
+### **Prompt Refiner** - Advanced Prompt Engineering
+*Iteratively improve AI prompts for better results*
 
-⸻
+- **Intelligent Refinement**: Transform rough prompt ideas into structured, effective instructions
+- **Role-Based Enhancement**: Adds appropriate roles, contexts, and formatting for optimal AI performance
+- **Revision Requests**: Request specific changes ("make it shorter", "add examples") for real-time improvements
+- **Technical Focus**: Specialized mode for coding and technical prompt optimization
 
-Real-World Example Workflow
-	1.	Prep Your Client Profiles:
-Use the provided Notion template or script to set up your “AI Client Library” database. Add each client’s details (Brand Voice, Tone, Industry, Keywords).
-Example:
+### **Coder Helper** - Technical Prompt Assistance
+*Specialized tool for development and technical scenarios*
 
-Acme Corp – Voice: Professional, Tone: Authoritative, Industry: Tech
+- **Code-Focused Refinement**: Optimizes prompts for programming tasks and technical documentation
+- **Explanation Generation**: Provides clear explanations of complex technical prompts
+- **Development Workflow**: Streamlined interface for rapid prompt iteration in technical contexts
 
+---
 
-	2.	Refine a Prompt:
-Suppose you have a rough prompt for a video editing AI:
+## 🎯 Who Is It For?
 
-Make a highlight reel from my footage.
+### **Marketing Agencies & Freelancers**
+- Manage multiple client brand voices from a centralized Notion database
+- Generate on-brand content across all platforms instantly
+- Scale content production without losing brand consistency
+- Comprehensive client research and brand development
 
-Use Prompt Refiner: paste your draft and click Refine. The tool returns a structured, detailed prompt (role, steps, format) for better AI results. If it’s not perfect, ask for a revision (“focus on a playful tone”) and the tool will iterate.
+### **Content Creators & Video Producers**
+- Transform video content into multi-platform social media campaigns
+- Maintain consistent brand voice across all content
+- Automate the repetitive aspects of content adaptation
 
-	3.	Generate Social Media Copy:
-After producing a new YouTube video, use Copy Generator. Paste your summary or transcript, select the client profile (so the AI knows the brand voice), and hit Generate Copy.
-You get:
-	•	A Facebook post (punchy hook and hashtags)
-	•	A LinkedIn post (professional angle)
-	•	A TikTok caption (casual, trendy language)
-	•	More
-Review, tweak, and publish or schedule as needed.
-	4.	Iterate and Save:
-If the client wants changes, refine the copy or prompts using the tools. Download all generated text results in one click. The Notion integration could be extended so that with one command, you save the final copy back to the client’s page for record-keeping.
+### **Prompt Engineers & Technical Teams**
+- Document and refine prompts for internal AI tools
+- Iteratively improve prompt effectiveness
+- Build libraries of tested, optimized prompts
 
-⸻
+### **Small Businesses & Startups**
+- Develop professional brand voice profiles from just a website URL
+- Create comprehensive content strategies without hiring agencies
+- Maintain professional brand presence across all channels
 
-Why Use Jon’s AI Tools?
-	•	Save Time, Improve Quality:
-Automate the grunt work of content creation and prompt tuning. Instead of writing 5 separate social media posts or endlessly tweaking prompts by hand, get AI-generated drafts in seconds. Faster turnaround for campaigns, more time for strategy and creativity.
-	•	Consistency at Scale:
-By centralizing client profile data, the toolkit ensures the tone and voice stay on-brand across all platforms and clients. The tools apply the same guidelines everywhere automatically.
-	•	Higher Engagement:
-Social prompts are crafted with best practices to boost engagement (hooks, questions, keywords). Encapsulate expert copywriting tips so even non-writers can produce strong marketing copy.
-	•	Transparency and Control:
-Unlike black-box content generators, this toolkit lets you see and edit the prompts guiding the AI. Refine instructions, add your twist, or intervene at any time. AI assistance with human oversight.
-	•	Scalability:
-Whether you manage 2 clients or 20, the same tools scale with you. Adding a new client is as simple as a new Notion entry. Adding a new platform or content format is as simple as writing a new prompt template file and maybe a small tool script.
+---
 
+## 🔄 Real-World Workflow Example
+
+### 1. **Automated Brand Research**
+Start with just a company website:
+```
+Input: https://anthropic.com
+Output: Complete brand profile with 30+ fields including:
+- Industry analysis
+- Target audience segmentation
+- Brand values and mission
+- Personality traits
+- Competitive positioning
+- Contact information
+- Social media presence
+```
+
+### 2. **Content Creation Pipeline**
+```
+Video Script/Transcript → Copy Generator → Platform-Optimized Posts
+
+Input: "Today we're launching our new AI safety research initiative..."
+
+Output:
+- Facebook: Engaging hook with visual call-to-action
+- LinkedIn: Professional thought leadership angle  
+- TikTok: Trendy, accessible explanation
+- YouTube: Descriptive with keyword optimization
+```
+
+### 3. **Prompt Engineering Workflow**
+```
+Rough Idea → Prompt Refiner → Optimized Instruction
+
+Input: "Make a summary of this article"
+
+Output: "You are a professional content strategist. Analyze the provided article and create a comprehensive summary that includes: [detailed role, steps, and format specifications]"
+```
+
+---
+
+## ✨ Why Choose Jon's AI Tools?
+
+### **🤖 Advanced AI Integration**
+- **Google Gemini 2.5 Flash**: Latest AI model for superior analysis and generation
+- **Temperature Optimization**: Precise control (0.3 for extraction, 0.7 for creativity)
+- **Structured JSON Outputs**: Reliable, consistent data extraction
+- **Multi-step Analysis**: Complex workflows broken into manageable, accurate steps
+
+### **🎨 Brand-First Approach**
+- **Comprehensive Brand Analysis**: Goes beyond basic demographics to strategic positioning
+- **Voice Consistency**: Maintains brand identity across all content and platforms
+- **Professional Methodology**: Uses proven brand strategy frameworks
+- **Scalable Profiles**: Manage unlimited client brands with consistent quality
+
+### **🔧 Technical Excellence**
+- **Robust Error Handling**: Multiple fallback strategies for reliable operation
+- **Notion Integration**: Seamless database management for client profiles
+- **Modular Architecture**: Easy to extend with new tools and capabilities
+- **Production Ready**: Built for scale with proper error handling and validation
+
+### **💡 Transparency & Control**
+- **Editable Prompts**: Full visibility and control over AI instructions
+- **Human Oversight**: Review and edit all outputs before use
+- **Iterative Refinement**: Continuous improvement of prompts and processes
+- **Data Ownership**: Your client data stays in your Notion workspace
+
+---
+
+## 🚀 Getting Started
+
+1. **Clone the Repository**
+2. **Set Up Secrets**: Copy `.streamlit/secrets.toml.template` to `secrets.toml` and add your API keys
+3. **Configure Notion**: Set up the AI Client Library database using the provided schema
+4. **Launch**: `streamlit run app.py`
+5. **Create Clients**: Use Context Gatherer to automatically research and profile new clients
+6. **Generate Content**: Select clients and create platform-optimized content instantly
+
+---
+
+## 🛡️ Security & Best Practices
+
+- **Secret Management**: API keys stored securely in `.streamlit/secrets.toml` (git-ignored)
+- **No Data Persistence**: Your sensitive data never leaves your local environment
+- **Notion Integration**: Client data stored in your own Notion workspace
+- **Template Files**: Secure setup guides for API key management
+
+---
+
+*Built for creators who demand both AI efficiency and brand authenticity.*
