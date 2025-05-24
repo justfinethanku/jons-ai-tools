@@ -188,7 +188,7 @@ def call_gemini_api(prompt, response_schema=None, temperature=0.2):
         "temperature": temperature,
         "top_p": 0.95,
         "top_k": 40,
-        "max_output_tokens": 2048, 
+        "max_output_tokens": 4096, 
     }
     
     # Add response schema if provided 
