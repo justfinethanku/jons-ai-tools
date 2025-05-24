@@ -19,8 +19,8 @@ def sidebar_info():
 
 def refine_prompt(rough_prompt, meta_prompt):
     """Initial prompt refinement"""
-    genai.configure(api_key=st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY"))
-    model = genai.GenerativeModel("gemini-2.5-pro-preview-05-06")
+    genai.configure(api_key=st.secrets["google"]["GEMINI_API_KEY"])
+    model = genai.GenerativeModel("gemini-2.5-flash-preview-05-20")
     response = model.generate_content(f"{meta_prompt}\n\n[ {rough_prompt} ]")
     return response.text.strip()
 
@@ -53,7 +53,7 @@ def revise_prompt(current_prompt, revision_request):
         revision_request=revision_request
     )
     
-    genai.configure(api_key=st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY"))
+    genai.configure(api_key=st.secrets["google"]["GEMINI_API_KEY"])
     model = genai.GenerativeModel("gemini-1.5-flash")  # Use faster model for revisions
     response = model.generate_content(prompt)
     return response.text.strip()

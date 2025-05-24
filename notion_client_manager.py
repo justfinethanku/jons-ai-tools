@@ -14,23 +14,35 @@ class NotionClientManager:
     def _initialize_notion(self):
         """Initialize Notion client from Streamlit secrets or env vars"""
         try:
-            # Try Streamlit secrets first
-            api_key = st.secrets.get("NOTION_API_KEY")
-            self.database_id = st.secrets.get("NOTION_DATABASE_ID")
-            
-            # Fall back to environment variables
-            if not api_key:
+            # Try Streamlit secrets first (nested under [notion] section)
+            try:
+                api_key = st.secrets["notion"]["NOTION_API_KEY"]
+                self.database_id = st.secrets["notion"]["NOTION_DATABASE_ID"]
+            except (KeyError, AttributeError):
+                # Secrets not available, try environment variables
                 api_key = os.getenv("NOTION_API_KEY")
                 self.database_id = os.getenv("NOTION_DATABASE_ID")
             
-            if api_key:
+            if api_key and self.database_id:
                 self.notion = Client(auth=api_key)
-                st.success("✅ Notion connected successfully!")
+                # Only show success message if we're in a proper Streamlit context
+                try:
+                    st.success("✅ Notion connected successfully!")
+                except:
+                    pass  # Streamlit context not ready yet
             else:
-                st.warning("⚠️ Notion not configured. Add API key to continue.")
+                # Only show warning if we're in a proper Streamlit context
+                try:
+                    st.warning("⚠️ Notion not configured. Add API key to continue.")
+                except:
+                    pass  # Streamlit context not ready yet
                 
         except Exception as e:
-            st.error(f"Notion connection failed: {str(e)}")
+            # Only show error if we're in a proper Streamlit context
+            try:
+                st.error(f"Notion connection failed: {str(e)}")
+            except:
+                pass  # Streamlit context not ready yet
     
     def get_clients(self) -> List[Dict]:
         """Fetch all clients from Notion database"""
