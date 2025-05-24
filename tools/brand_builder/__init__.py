@@ -283,6 +283,7 @@ if _compat_module:
     extract_website_data = getattr(_compat_module, 'extract_website_data', None)
     analyze_brand_voice = getattr(_compat_module, 'analyze_brand_voice', None)
     comprehensive_client_analysis = getattr(_compat_module, 'comprehensive_client_analysis', None)
+    run_brand_builder = getattr(_compat_module, 'run_brand_builder', None)
     
     if extract_website_data:
         __all__.append('extract_website_data')
@@ -290,3 +291,5 @@ if _compat_module:
         __all__.append('analyze_brand_voice')
     if comprehensive_client_analysis:
         __all__.append('comprehensive_client_analysis')
+    if run_brand_builder:
+        __all__.append('run_brand_builder')

@@ -69,7 +69,7 @@ class AudienceDefinerTool(WorkflowStep):
                     step_name=self.name
                 )
             
-            result_data = json.loads(response)
+            result_data = json.loads(response) 
             
             return StepResult(
                 success=True,
