@@ -137,7 +137,16 @@ class NotionDatabaseManager:
                 "Current_Target_Audience",
                 "Ideal_Target_Audience",
                 "Brand_Mission",
-                "Words_Tones_To_Avoid"
+                "Words_Tones_To_Avoid",
+                "Website",
+                "Contact_Email",
+                "Phone_Number",
+                "Address",
+                "LinkedIn_URL",
+                "Twitter_URL",
+                "Facebook_URL",
+                "Instagram_URL",
+                "Other_Social_Media"
             ]
             
             for prop in rich_text_props:
@@ -188,7 +197,16 @@ class NotionDatabaseManager:
             "Current_Target_Audience", 
             "Ideal_Target_Audience", 
             "Brand_Mission", 
-            "Words_Tones_To_Avoid"
+            "Words_Tones_To_Avoid",
+            "Website",
+            "Contact_Email",
+            "Phone_Number",
+            "Address",
+            "LinkedIn_URL",
+            "Twitter_URL",
+            "Facebook_URL",
+            "Instagram_URL",
+            "Other_Social_Media"
         ]
         
         for field in rich_text_fields:
@@ -411,20 +429,94 @@ def client_selector_sidebar(db_manager=None, allow_new_client=False):
         with st.sidebar.form("new_client_form"):
             st.subheader("Create New Client")
             new_client_name = st.text_input("Client Name", key="new_client_name")
-            
-            # Industry dropdown (customize options as needed)
-            industry_options = [
-                "Technology", "Healthcare", "Finance", "Education", 
-                "Retail", "Manufacturing", "Services", "Non-profit",
-                "Entertainment", "Food & Beverage", "Real Estate", "Other"
-            ]
-            new_client_industry = st.selectbox("Industry", industry_options, key="new_client_industry")
+            website_url = st.text_input("Website URL (optional)", key="new_client_website", 
+                                      help="Provide URL to auto-extract company information")
             
             create_button = st.form_submit_button("Create Client")
             
             if create_button and new_client_name:
+                # Import analysis functions if website URL provided
+                if website_url.strip():
+                    # Import the analysis functions from context_gatherer
+                    try:
+                        from tools.context_gatherer import extract_website_data, analyze_brand_voice
+                        
+                        # Step 1: Extract website data
+                        with st.spinner("Step 1: Extracting company data from website..."):
+                            step1_success, website_data, step1_error = extract_website_data(new_client_name, website_url.strip())
+                            
+                        if step1_success:
+                            st.sidebar.success("✅ Step 1 complete: Company data extracted")
+                            
+                            # Step 2: Analyze brand voice
+                            with st.spinner("Step 2: Analyzing brand voice..."):
+                                step2_success, analysis_result, step2_error = analyze_brand_voice(new_client_name, website_data)
+                                
+                            if step2_success:
+                                st.sidebar.success("✅ Step 2 complete: Brand voice analysis finished")
+                                success = True
+                                error_msg = None
+                            else:
+                                st.sidebar.error(f"Step 2 failed: {step2_error}")
+                                success = False
+                                analysis_result = website_data  # Use partial data
+                                error_msg = step2_error
+                        else:
+                            st.sidebar.error(f"Step 1 failed: {step1_error}")
+                            success = False
+                            analysis_result = None
+                            error_msg = step1_error
+                        
+                        if success:
+                            # Use extracted industry and data
+                            new_client_industry = analysis_result.get("industry", "Other")
+                            extracted_data = analysis_result
+                            st.sidebar.success("✅ Website analyzed successfully!")
+                        else:
+                            st.sidebar.error(f"Website analysis failed: {error_msg}")
+                            new_client_industry = "Other"
+                            extracted_data = None
+                    except Exception as e:
+                        st.sidebar.error(f"Analysis failed: {str(e)}")
+                        new_client_industry = "Other"
+                        extracted_data = None
+                else:
+                    # No website provided, use default
+                    new_client_industry = "Other"
+                    extracted_data = None
+                
                 # Create the new client
                 new_client_id = db_manager.create_new_client(new_client_name, new_client_industry)
+                
+                # If we have extracted data, update the client profile immediately
+                if new_client_id and extracted_data:
+                    # Map analysis results to Notion fields
+                    notion_data = {
+                        "Industry": extracted_data.get("industry", "Other"),
+                        "Website": website_url.strip(),
+                        "Product_Service_Description": extracted_data.get("product_service_description", ""),
+                        "Current_Target_Audience": extracted_data.get("current_target_audience", ""),
+                        "Ideal_Target_Audience": extracted_data.get("ideal_target_audience", ""),
+                        "Brand_Values": extracted_data.get("brand_values", ""),
+                        "Brand_Mission": extracted_data.get("brand_mission", ""),
+                        "Desired_Emotional_Impact": extracted_data.get("desired_emotional_impact", ""),
+                        "Brand_Personality": extracted_data.get("brand_personality", ""),
+                        "Words_Tones_To_Avoid": extracted_data.get("words_tones_to_avoid", ""),
+                        "Contact_Email": extracted_data.get("contact_email", ""),
+                        "Phone_Number": extracted_data.get("phone_number", ""),
+                        "Address": extracted_data.get("address", ""),
+                        "LinkedIn_URL": extracted_data.get("linkedin_url", ""),
+                        "Twitter_URL": extracted_data.get("twitter_url", ""),
+                        "Facebook_URL": extracted_data.get("facebook_url", ""),
+                        "Instagram_URL": extracted_data.get("instagram_url", ""),
+                        "Other_Social_Media": extracted_data.get("other_social_media", "")
+                    }
+                    
+                    # Update the client profile with extracted data
+                    db_manager.update_client_profile(new_client_id, notion_data)
+                elif new_client_id and website_url.strip():
+                    # No analysis but website provided, store the URL
+                    db_manager.update_client_profile(new_client_id, {"Website": website_url.strip()})
                 
                 if new_client_id:
                     # Store in session state for continued use

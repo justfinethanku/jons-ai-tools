@@ -16,41 +16,45 @@ def client_selection_sidebar():
     """Add client selection to sidebar"""
     st.sidebar.title("🎯 Client Selection")
     
-    notion_manager = get_notion_manager()
-    
-    if notion_manager.is_connected():
-        clients = notion_manager.get_clients()
+    try:
+        notion_manager = get_notion_manager()
         
-        if clients:
-            client_names = ["None"] + [f"{c['name']}" for c in clients]
-            selected_client_name = st.sidebar.selectbox(
-                "Select client for personalized content:",
-                client_names,
-                key="client_selector"
-            )
+        if notion_manager.is_connected():
+            clients = notion_manager.get_clients()
             
-            # Store selected client in session state
-            if selected_client_name != "None":
-                selected_client = next(
-                    (c for c in clients if c["name"] == selected_client_name), 
-                    None
+            if clients:
+                client_names = ["None"] + [f"{c['name']}" for c in clients]
+                selected_client_name = st.sidebar.selectbox(
+                    "Select client for personalized content:",
+                    client_names,
+                    key="client_selector"
                 )
-                st.session_state["selected_client"] = selected_client
                 
-                # Show client info
-                with st.sidebar.expander("📋 Client Details"):
-                    st.write(f"**Brand Voice:** {selected_client['brand_voice']}")
-                    st.write(f"**Tone:** {selected_client['tone']}")
-                    st.write(f"**Industry:** {selected_client['industry']}")
-                    if selected_client.get('keywords'):
-                        st.write(f"**Keywords:** {', '.join(selected_client['keywords'])}")
+                # Store selected client in session state
+                if selected_client_name != "None":
+                    selected_client = next(
+                        (c for c in clients if c["name"] == selected_client_name), 
+                        None
+                    )
+                    st.session_state["selected_client"] = selected_client
+                    
+                    # Show client info
+                    with st.sidebar.expander("📋 Client Details"):
+                        st.write(f"**Brand Voice:** {selected_client['brand_voice']}")
+                        st.write(f"**Tone:** {selected_client['tone']}")
+                        st.write(f"**Industry:** {selected_client['industry']}")
+                        if selected_client.get('keywords'):
+                            st.write(f"**Keywords:** {', '.join(selected_client['keywords'])}")
+                else:
+                    st.session_state["selected_client"] = None
             else:
-                st.session_state["selected_client"] = None
+                st.sidebar.warning("No clients found in your Notion database.")
+                st.sidebar.info("Add clients to your AI Library database to get started.")
         else:
-            st.sidebar.warning("No clients found in your Notion database.")
-            st.sidebar.info("Add clients to your AI Library database to get started.")
-    else:
-        st.sidebar.error("❌ Notion not connected")
+            st.sidebar.error("❌ Notion not connected")
+            st.sidebar.info("Check your .streamlit/secrets.toml file")
+    except Exception as e:
+        st.sidebar.error(f"❌ Notion connection error: {str(e)}")
         st.sidebar.info("Check your .streamlit/secrets.toml file")
 
 def enhance_prompt_with_client_context(prompt_template, client_data):
@@ -184,10 +188,10 @@ def call_gemini_api(prompt, response_schema=None, temperature=0.2):
         "temperature": temperature,
         "top_p": 0.95,
         "top_k": 40,
-        "max_output_tokens": 2048,
+        "max_output_tokens": 2048, 
     }
     
-    # Add response schema if provided
+    # Add response schema if provided 
     if response_schema:
         generation_config["response_schema"] = response_schema
         generation_config["response_mime_type"] = "application/json"
@@ -195,7 +199,7 @@ def call_gemini_api(prompt, response_schema=None, temperature=0.2):
     try:
         # Create the model
         model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
+            model_name="gemini-2.5-flash-preview-05-20",
             generation_config=generation_config
         )
         
