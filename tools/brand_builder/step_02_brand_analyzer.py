@@ -16,10 +16,47 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 from tools.brand_builder import WorkflowStep, WorkflowContext, StepResult
 from frameworks import universal_framework
-from frameworks.shared_utilities import clean_json_response, safe_json_parse
-from frameworks.prompt_wrappers import prompt_wrapper
-from database_config import VOICE_GUIDELINES_DB_ID, NOTION_API_KEY
-from notion_client import Client
+# JSON utilities (moved from shared_utilities.py)
+import json
+import re
+from typing import Dict, Any, Tuple, Optional
+
+def clean_json_response(response_text: str) -> str:
+    """Clean and extract JSON from API responses."""
+    if not response_text:
+        return "{}"
+    
+    # Remove markdown code blocks
+    response_text = re.sub(r'```json\s*', '', response_text)
+    response_text = re.sub(r'```\s*$', '', response_text)
+    
+    # Remove any leading/trailing whitespace
+    response_text = response_text.strip()
+    
+    # Try to find JSON content between braces
+    json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+    if json_match:
+        response_text = json_match.group()
+    
+    # Clean up common JSON formatting issues
+    response_text = re.sub(r',\s*}', '}', response_text)  # Remove trailing commas
+    response_text = re.sub(r',\s*]', ']', response_text)  # Remove trailing commas in arrays
+    
+    return response_text
+
+def safe_json_parse(json_string: str, fallback: Optional[Dict] = None) -> Tuple[bool, Dict[str, Any]]:
+    """Safely parse JSON string with fallback handling."""
+    if fallback is None:
+        fallback = {}
+    
+    try:
+        cleaned = clean_json_response(json_string)
+        parsed = json.loads(cleaned)
+        return True, parsed
+    except (json.JSONDecodeError, Exception) as e:
+        print(f"⚠️ JSON parsing failed: {str(e)}")
+        return False, fallback
+# Database imports removed - using research_tools_framework instead
 
 
 def format_for_database(result_data):
@@ -133,7 +170,7 @@ def robust_json_parse(response_text):
     except json.JSONDecodeError:
         pass  # Continue to Strategy 3
     
-    # Strategy 3: Try shared_utilities.clean_json_response
+    # Strategy 3: Try clean_json_response
     try:
         cleaned = clean_json_response(response_text)
         result_data = json.loads(cleaned)

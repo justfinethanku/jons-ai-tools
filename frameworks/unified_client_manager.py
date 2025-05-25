@@ -48,7 +48,21 @@ class UnifiedClientManager:
                 'tool_status': {},
                 'last_updated': None
             }
-        return st.session_state[self.session_key]
+        
+        # Safety check: ensure we have a dictionary, not a corrupted object
+        session_data = st.session_state[self.session_key]
+        if not isinstance(session_data, dict):
+            # Corrupted session state - recreate it
+            st.session_state[self.session_key] = {
+                'client_page_id': None,
+                'client_name': None,
+                'client_profile': {},
+                'tool_status': {},
+                'last_updated': None
+            }
+            session_data = st.session_state[self.session_key]
+        
+        return session_data
     
     def clear_session_state(self):
         """Clear session state for this tool"""
@@ -277,7 +291,7 @@ class UnifiedClientManager:
             # Display progress
             self._display_tool_progress(tool_status)
             
-        except Exception as e:
+        except Exception:
             st.sidebar.warning("Could not retrieve tool status.")
             tool_status = self._get_default_tool_status()
         
@@ -340,15 +354,26 @@ class UnifiedClientManager:
 
 def get_unified_client_manager(tool_name: str) -> UnifiedClientManager:
     """Factory function to get unified client manager for a tool"""
-    cache_key = f"ucm_{tool_name}"
-    if cache_key not in st.session_state:
-        st.session_state[cache_key] = UnifiedClientManager(tool_name)
-    return st.session_state[cache_key]
+    session_key = f"ucm_{tool_name}"
+    
+    # Check if we have a valid manager
+    if session_key in st.session_state:
+        manager = st.session_state[session_key]
+        if isinstance(manager, UnifiedClientManager):
+            return manager
+        else:
+            # Clear corrupted entry
+            del st.session_state[session_key]
+    
+    # Create new manager
+    st.session_state[session_key] = UnifiedClientManager(tool_name)
+    return st.session_state[session_key]
 
 
 # Backward compatibility functions
 def client_selector_sidebar(db_manager=None, allow_new_client=False, tool_name="legacy"):
     """Backward compatibility wrapper for existing code"""
+    # db_manager parameter kept for compatibility but not used
     manager = get_unified_client_manager(tool_name)
     return manager.client_selector_sidebar(allow_new_client)
 
@@ -356,14 +381,19 @@ def client_selector_sidebar(db_manager=None, allow_new_client=False, tool_name="
 def client_selection_sidebar(tool_name="universal"):
     """Backward compatibility for universal_framework"""
     manager = get_unified_client_manager(tool_name)
-    client_page_id, client_name, status = manager.client_selector_sidebar(allow_new_client=False)
+    client_page_id, client_name, _ = manager.client_selector_sidebar(allow_new_client=False)
     
     # Store in global session state for backward compatibility
     if client_page_id:
+        client_profile = manager.get_session_state().get('client_profile', {})
+        # Ensure client_profile is a dictionary
+        if not isinstance(client_profile, dict):
+            client_profile = {}
+        
         st.session_state["selected_client"] = {
             'id': client_page_id,
             'name': client_name,
-            **manager.get_session_state()['client_profile']
+            **client_profile
         }
     else:
         st.session_state["selected_client"] = None

@@ -17,14 +17,16 @@ st.markdown(
 def run_refiner(
     tool_name,
     refine_func,
-    explain_func,  # Keep for compatibility but ignore
+    _explain_func,  # Keep for compatibility but ignore
     meta_prompt,
-    explainer_prompt,  # Keep for compatibility but ignore
+    _explainer_prompt,  # Keep for compatibility but ignore
     sidebar_info,
     rough_prompt_label="Rough Prompt",
-    show_explain=False,  # Not used anymore
+    _show_explain=False,  # Not used anymore
     output_height=160,
 ):
+    # Unused parameters kept for backward compatibility
+    _ = _explain_func, _explainer_prompt, _show_explain  # Explicitly mark as unused
     # Optional: Tool-specific sidebar/help
     sidebar_info()
 
@@ -95,9 +97,9 @@ def run_refiner(
         # Handle revision
         if revise_clicked and revision_request.strip():
             # Import the revise function using shared utilities to avoid circular imports
-            from frameworks.shared_utilities import revise_prompt_safely
+            import tools.prompt_refiner as prompt_refiner
             
-            revised = revise_prompt_safely(st.session_state["refined"], revision_request)
+            revised = prompt_refiner.revise_prompt(st.session_state["refined"], revision_request)
             st.session_state["refined"] = revised
             st.session_state["revision_history"].append(revised)
             

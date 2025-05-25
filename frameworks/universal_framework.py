@@ -6,69 +6,53 @@ import json
 import traceback
 import logging
 from typing import Dict, Any, Optional, Union
-from notion_client_manager import NotionClientManager
-from frameworks.shared_utilities import safe_json_parse, sanitize_text_for_notion
+# NotionDatabaseManager import removed - using unified_client_manager instead
+# Utilities (moved from shared_utilities.py)
+import json
+import re
+from typing import Dict, Any, Tuple, Optional
+
+def safe_json_parse(json_string: str, fallback: Optional[Dict] = None) -> Tuple[bool, Dict[str, Any]]:
+    """Safely parse JSON string with fallback handling."""
+    if fallback is None:
+        fallback = {}
+    
+    try:
+        # Basic JSON cleaning
+        cleaned = json_string.strip()
+        if cleaned.startswith('```json'):
+            cleaned = cleaned.replace('```json', '').replace('```', '').strip()
+        parsed = json.loads(cleaned)
+        return True, parsed
+    except (json.JSONDecodeError, Exception) as e:
+        print(f"⚠️ JSON parsing failed: {str(e)}")
+        return False, fallback
+
+def sanitize_text_for_notion(text: str, max_length: int = 2000) -> str:
+    """Sanitize text for Notion rich text fields."""
+    if not text:
+        return ""
+    
+    # Remove any problematic characters
+    sanitized = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '', str(text))
+    
+    # Truncate if too long
+    if len(sanitized) > max_length:
+        sanitized = sanitized[:max_length-3] + "..."
+    
+    return sanitized
 
 # Configure logging for better error tracking
 logging.basicConfig(level=logging.WARNING)
 
 st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
 
-# Initialize Notion manager with error handling
-@st.cache_resource
-def get_notion_manager():
-    """Get Notion manager with error boundary."""
-    try:
-        return NotionClientManager()
-    except Exception as e:
-        logging.error(f"Failed to initialize NotionClientManager: {str(e)}")
-        st.error(f"❌ Failed to initialize Notion connection: {str(e)}")
-        return None
+# Client selection is now handled by unified_client_manager
 
 def client_selection_sidebar():
-    """Add client selection to sidebar"""
-    st.sidebar.title("🎯 Client Selection")
-    
-    try:
-        notion_manager = get_notion_manager()
-        
-        if notion_manager.is_connected():
-            clients = notion_manager.get_clients()
-            
-            if clients:
-                client_names = ["None"] + [f"{c['name']}" for c in clients]
-                selected_client_name = st.sidebar.selectbox(
-                    "Select client for personalized content:",
-                    client_names,
-                    key="client_selector"
-                )
-                
-                # Store selected client in session state
-                if selected_client_name != "None":
-                    selected_client = next(
-                        (c for c in clients if c["name"] == selected_client_name), 
-                        None
-                    )
-                    st.session_state["selected_client"] = selected_client
-                    
-                    # Show client info
-                    with st.sidebar.expander("📋 Client Details"):
-                        st.write(f"**Brand Voice:** {selected_client['brand_voice']}")
-                        st.write(f"**Tone:** {selected_client['tone']}")
-                        st.write(f"**Industry:** {selected_client['industry']}")
-                        if selected_client.get('keywords'):
-                            st.write(f"**Keywords:** {', '.join(selected_client['keywords'])}")
-                else:
-                    st.session_state["selected_client"] = None
-            else:
-                st.sidebar.warning("No clients found in your Notion database.")
-                st.sidebar.info("Add clients to your AI Library database to get started.")
-        else:
-            st.sidebar.error("❌ Notion not connected")
-            st.sidebar.info("Check your .streamlit/secrets.toml file")
-    except Exception as e:
-        st.sidebar.error(f"❌ Notion connection error: {str(e)}")
-        st.sidebar.info("Check your .streamlit/secrets.toml file")
+    """Add client selection to sidebar using unified client manager"""
+    from frameworks.unified_client_manager import client_selection_sidebar as unified_selector
+    return unified_selector("universal")
 
 def enhance_prompt_with_client_context(prompt_template: str, client_data: Optional[Dict[str, Any]]) -> str:
     """Enhance a prompt template with client-specific context.

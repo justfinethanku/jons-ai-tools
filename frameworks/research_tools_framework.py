@@ -13,15 +13,19 @@ class NotionDatabaseManager:
     """Centralized manager for Notion database operations"""
     def __init__(self, notion_api_key=None):
         """Initialize the Notion Database Manager"""
+        # Use the new secure database configuration system
+        from database_config import get_notion_client, get_database_ids
+        
         if notion_api_key is None:
-            notion_api_key = st.secrets["notion"]["NOTION_API_KEY"]
+            self.notion = get_notion_client()
+        else:
+            self.notion = Client(auth=notion_api_key)
         
-        self.notion = Client(auth=notion_api_key)
-        self.client_database_id = st.secrets["notion"]["NOTION_DATABASE_ID"]
-        
-        # Get database IDs for content samples and voice guidelines
-        self.content_samples_database_id = st.secrets["notion"]["Content_Samples_database_ID"]
-        self.voice_guidelines_database_id = st.secrets["notion"]["voice_guidelines_database_id"]
+        # Get database IDs using the secure configuration system
+        db_ids = get_database_ids()
+        self.client_database_id = db_ids['client_database_id']
+        self.content_samples_database_id = db_ids['content_samples_database_id']
+        self.voice_guidelines_database_id = db_ids['voice_guidelines_database_id']
     
     def get_client_list(self):
         """Get a list of all clients"""
@@ -361,10 +365,9 @@ class NotionDatabaseManager:
                     properties=properties_to_update
                 )
                 return True
-            except Exception as e:
+            except Exception:
                 # BUGFIX: Silently handle completion tracking errors
                 # Tool completion tracking is non-essential - don't block user workflow
-                # st.error(f"Error marking tool complete: {str(e)}")
                 return False
         else:
             return False
@@ -374,25 +377,29 @@ class NotionDatabaseManager:
         return datetime.now().strftime("%Y-%m-%d")
     
     # Content samples methods - stub implementations for now
-    def add_content_samples(self, client_page_id, samples_data):
+    def add_content_samples(self, _client_page_id, _samples_data):
         """Add content samples"""
         # This will be implemented fully when we build the Content Collector tool
+        # Parameters prefixed with _ to indicate they're intentionally unused in stub
         pass
     
-    def get_content_samples(self, client_page_id):
+    def get_content_samples(self, _client_page_id):
         """Get content samples for a client"""
         # This will be implemented fully when we build the Content Collector tool
+        # Parameter prefixed with _ to indicate it's intentionally unused in stub
         return []
     
     # Voice guidelines methods - stub implementations for now
-    def update_voice_guidelines(self, client_page_id, voice_data):
+    def update_voice_guidelines(self, _client_page_id, _voice_data):
         """Update voice guidelines"""
         # This will be implemented fully when we build the Voice-related tools
+        # Parameters prefixed with _ to indicate they're intentionally unused in stub
         pass
     
-    def get_voice_guidelines(self, client_page_id):
+    def get_voice_guidelines(self, _client_page_id):
         """Get voice guidelines for a client"""
         # This will be implemented fully when we build the Voice-related tools
+        # Parameter prefixed with _ to indicate it's intentionally unused in stub
         return {}
     
     def get_deep_research_data(self, client_page_id):
@@ -493,33 +500,27 @@ def client_selector_sidebar(db_manager=None, allow_new_client=False):
                 if website_url.strip():
                     # Import the analysis functions using shared utilities to avoid circular imports
                     try:
-                        from frameworks.shared_utilities import extract_website_data_safely, analyze_brand_voice_safely
+                        from tools.brand_builder.step_01_website_extractor import AutomatedWebsiteExtractor, WorkflowContext
                         
-                        # Step 1: Extract website data
-                        with st.spinner("Step 1: Extracting company data from website..."):
-                            step1_success, website_data, step1_error = extract_website_data_safely(new_client_name, website_url.strip())
+                        # Run website extraction
+                        with st.spinner("Extracting website data..."):
+                            context = WorkflowContext()
+                            context.set_input("client_name", new_client_name)
+                            context.set_input("website_url", website_url.strip())
                             
-                        if step1_success:
-                            st.sidebar.success("✅ Step 1 complete: Company data extracted")
-                            
-                            # Step 2: Analyze brand voice
-                            with st.spinner("Step 2: Analyzing brand voice..."):
-                                step2_success, analysis_result, step2_error = analyze_brand_voice_safely(new_client_name, website_data)
-                                
-                            if step2_success:
-                                st.sidebar.success("✅ Step 2 complete: Brand voice analysis finished")
-                                success = True
-                                error_msg = None
-                            else:
-                                st.sidebar.error(f"Step 2 failed: {step2_error}")
-                                success = False
-                                analysis_result = website_data  # Use partial data
-                                error_msg = step2_error
+                            extractor = AutomatedWebsiteExtractor()
+                            result = extractor.execute(context)
+                        
+                        if result.success:
+                            st.sidebar.success("✅ Website analysis complete")
+                            success = True
+                            analysis_result = result.data.get("analysis", {})
+                            error_msg = None
                         else:
-                            st.sidebar.error(f"Step 1 failed: {step1_error}")
+                            st.sidebar.error(f"Website analysis failed: {'; '.join(result.errors)}")
                             success = False
                             analysis_result = None
-                            error_msg = step1_error
+                            error_msg = '; '.join(result.errors)
                         
                         if success:
                             # Use extracted industry and data
@@ -764,3 +765,78 @@ def get_content_collector_schema():
         },
         "required": ["content_samples"],
     }
+
+def run_brand_builder():
+    """
+    Streamlit UI for Brand Builder - Step 1 Only
+    """
+    st.title("Brand Builder")
+    st.subheader("Start here")
+    
+    st.write("Enter the name and URL of client and the workflow will take it from here!")
+    
+    # Import step 1 components
+    from tools.brand_builder.step_01_website_extractor import AutomatedWebsiteExtractor, WorkflowContext
+    
+    # Input form
+    with st.form("website_extractor"):
+        client_name = st.text_input("Client Name", placeholder="Enter client name")
+        website_url = st.text_input("Website URL", placeholder="https://example.com")
+        
+        submitted = st.form_submit_button("🔍 Extract Website Data")
+        
+        if submitted:
+            if not client_name or not website_url:
+                st.error("Please provide both client name and website URL")
+            else:
+                # Ensure URL has protocol
+                if not website_url.startswith('http'):
+                    website_url = f"https://{website_url}"
+                
+                # Create context and run extraction
+                context = WorkflowContext()
+                context.set_input("client_name", client_name)
+                context.set_input("website_url", website_url)
+                
+                # Run the extraction
+                with st.spinner("🔍 Extracting website data..."):
+                    extractor = AutomatedWebsiteExtractor()
+                    result = extractor.execute(context)
+                
+                # Show results
+                if result.success:
+                    st.success("✅ Website extraction completed!")
+                    
+                    # Display results
+                    st.subheader("📊 Extraction Results")
+                    
+                    if result.data.get("analysis"):
+                        st.write("### Business Analysis")
+                        st.json(result.data["analysis"])
+                    
+                    if result.data.get("content_file"):
+                        st.write(f"📁 **Content File:** `{result.data['content_file']}`")
+                    
+                    if result.data.get("sitemap_file"):
+                        st.write(f"🗺️ **Sitemap File:** `{result.data['sitemap_file']}`")
+                    
+                    if result.data.get("client_id"):
+                        st.write(f"🗄️ **Notion Client ID:** `{result.data['client_id']}`")
+                    
+                    st.balloons()
+                else:
+                    st.error("❌ Extraction failed:")
+                    for error in result.errors:
+                        st.error(f"  • {error}")
+
+def run_command_line():
+    """
+    Command line version for testing
+    """
+    from tools.brand_builder.step_01_website_extractor import run_website_extractor
+    
+    print("🚀 BRAND BUILDER - STARTING WITH WEBSITE EXTRACTION")
+    print("=" * 50)
+    
+    # Run the website extractor
+    run_website_extractor()
