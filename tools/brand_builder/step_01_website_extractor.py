@@ -65,7 +65,7 @@ class WorkflowStep:
     def execute(self, context: WorkflowContext) -> StepResult:
         raise NotImplementedError("Subclasses must implement execute method")
 from frameworks import universal_framework
-from frameworks.research_tools_framework import NotionDatabaseManager
+from frameworks.database_manager import NotionDatabaseManager
 from prompts.research_prompts.step01_prompts.extract_sitemap import get_page_discovery_prompt
 from prompts.research_prompts.step01_prompts.extract_client_info import (
     get_comprehensive_analysis_prompt, 

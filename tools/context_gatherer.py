@@ -18,7 +18,13 @@ import trafilatura
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from frameworks import universal_framework, research_tools_framework
+from frameworks import universal_framework
+from frameworks.database_manager import (
+    NotionDatabaseManager, 
+    format_list_for_display, 
+    parse_markdown_table, 
+    client_selector_sidebar
+)
 # NOTE: Import new prompt wrapper system for modular prompt management
 from frameworks.prompt_wrappers import prompt_wrapper
 # NOTE: Load prompt configurations to ensure they're registered
@@ -475,10 +481,10 @@ def run_context_gatherer():
     st.write("Collect foundational client information and brand attributes")
     
     # Initialize Notion database manager
-    db_manager = research_tools_framework.NotionDatabaseManager()
+    db_manager = NotionDatabaseManager()
     
     # Client selector sidebar with option to create new clients
-    client_page_id, selected_client, status = research_tools_framework.client_selector_sidebar(
+    client_page_id, selected_client, status = client_selector_sidebar(
         db_manager=db_manager, 
         allow_new_client=True
     )
@@ -511,10 +517,10 @@ def run_context_gatherer():
             "product_service": client_profile.get("Product_Service_Description", ""),
             "current_audience": client_profile.get("Current_Target_Audience", ""),
             "ideal_audience": client_profile.get("Ideal_Target_Audience", ""),
-            "brand_values": research_tools_framework.format_list_for_display(client_profile.get("Brand_Values", "")),
+            "brand_values": format_list_for_display(client_profile.get("Brand_Values", "")),
             "brand_mission": client_profile.get("Brand_Mission", ""),
-            "emotional_impact": research_tools_framework.format_list_for_display(client_profile.get("Desired_Emotional_Impact", "")),
-            "brand_personality": research_tools_framework.format_list_for_display(client_profile.get("Brand_Personality", "")),
+            "emotional_impact": format_list_for_display(client_profile.get("Desired_Emotional_Impact", "")),
+            "brand_personality": format_list_for_display(client_profile.get("Brand_Personality", "")),
             "avoid_topics": client_profile.get("Words_Tones_To_Avoid", ""),
             "website_url": client_profile.get("Website", ""),
             "contact_email": client_profile.get("Contact_Email", ""),
@@ -947,7 +953,7 @@ def parse_context_output(response):
     parsed_data = {}
     
     # Use the shared function to parse markdown tables
-    table_data = research_tools_framework.parse_markdown_table(response)
+    table_data = parse_markdown_table(response)
     
     if not table_data:
         return parsed_data

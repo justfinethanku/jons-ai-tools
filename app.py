@@ -4,7 +4,7 @@ from frameworks.refiner_framework import run_refiner
 import tools.prompt_refiner as prompt_refiner
 import tools.coder_helper as coder_helper
 from tools import social_copy_tool
-from frameworks.research_tools_framework import run_brand_builder
+from frameworks.database_manager import run_brand_builder
 
 # Initialize session state
 if "tool" not in st.session_state:
