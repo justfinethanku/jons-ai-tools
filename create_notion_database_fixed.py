@@ -1,7 +1,13 @@
 # create_notion_database_fixed.py
 from notion_client import Client
+import os
 
-NOTION_TOKEN = "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"
+# Get token from environment variables - never hardcode!
+NOTION_TOKEN = os.getenv("NOTION_API_KEY")
+if not NOTION_TOKEN:
+    print("❌ NOTION_API_KEY environment variable not set")
+    print("Set it with: export NOTION_API_KEY=your_token_here")
+    exit(1)
 
 def create_database_in_page():
     """Create database with proper search"""

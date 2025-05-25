@@ -15,9 +15,22 @@ import sys
 import json
 from notion_client import Client
 
-# Configuration
-NOTION_API_KEY = "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"
-CLIENT_DATABASE_ID = "1f872022-1e76-81f2-8248-e812a9295df0"
+# Configuration - using environment variables for security
+import os
+
+NOTION_API_KEY = os.getenv("NOTION_API_KEY")
+CLIENT_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
+
+# Validate required environment variables
+if not NOTION_API_KEY:
+    print("❌ NOTION_API_KEY environment variable not set")
+    print("Set it with: export NOTION_API_KEY=your_token_here")
+    sys.exit(1)
+
+if not CLIENT_DATABASE_ID:
+    print("❌ NOTION_DATABASE_ID environment variable not set")
+    print("Set it with: export NOTION_DATABASE_ID=your_database_id_here")
+    sys.exit(1)
 
 def print_header(text):
     """Print a formatted header"""
@@ -238,7 +251,7 @@ def main():
         
         print("\nAdd these IDs to your secrets.toml file:")
         print(f"Content_Samples_database_ID = \"{content_samples_database_id}\"")
-        print(f"voice_guidlines_database_id = \"{voice_guidelines_database_id}\"")
+        print(f"voice_guidelines_database_id = \"{voice_guidelines_database_id}\"")
         
     except Exception as e:
         print(f"❌ Error: {str(e)}")

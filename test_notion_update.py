@@ -18,7 +18,7 @@ class MockSecrets:
             "NOTION_API_KEY": os.getenv("NOTION_API_KEY", "your_api_key_here"),
             "NOTION_DATABASE_ID": os.getenv("NOTION_DATABASE_ID", "your_database_id_here"),
             "Content_Samples_database_ID": os.getenv("CONTENT_SAMPLES_DB_ID", "content_samples_db_id"),
-            "voice_guidlines_database_id": os.getenv("VOICE_GUIDELINES_DB_ID", "voice_guidelines_db_id")
+            "voice_guidelines_database_id": os.getenv("VOICE_GUIDELINES_DB_ID", "voice_guidelines_db_id")
         }
 
 # Mock Streamlit module

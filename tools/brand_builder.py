@@ -90,26 +90,19 @@ def comprehensive_client_analysis(client_name, industry, website_url=None, form_
 
 def run_brand_builder():
     """
-    Main Streamlit UI function using the modular workflow system
+    Main Streamlit UI function using the modular workflow system with unified client management
     """
     import streamlit as st
-    from frameworks import research_tools_framework
+    from frameworks.unified_client_manager import get_unified_client_manager
     
     st.title("Brand Builder")
     st.write("Build comprehensive brand profiles using modular workflow system")
     
-    # Initialize database manager
-    try:
-        db_manager = research_tools_framework.NotionDatabaseManager()
-    except Exception as e:
-        st.error("🔧 **Configuration Required**")
-        st.error("Please configure your Notion API credentials.")
-        st.stop()
-        return
+    # Initialize unified client manager
+    client_manager = get_unified_client_manager("brand_builder")
     
     # Client selector sidebar
-    client_page_id, selected_client, status = research_tools_framework.client_selector_sidebar(
-        db_manager=db_manager, 
+    client_page_id, selected_client, status = client_manager.client_selector_sidebar(
         allow_new_client=True
     )
     
@@ -118,7 +111,7 @@ def run_brand_builder():
         return
     
     # Get client profile
-    client_profile = db_manager.get_client_profile(client_page_id)
+    _, _, client_profile = client_manager.get_current_client()
     
     st.subheader(f"Working on: {selected_client}")
     
@@ -139,7 +132,7 @@ def run_brand_builder():
                     st.success("✅ Step 1 completed!")
                     st.json(result.data)
                     # Save to Notion
-                    db_manager.update_client_profile(client_page_id, result.data)
+                    client_manager.db_manager.update_client_profile(client_page_id, result.data)
                 else:
                     st.error("❌ Step 1 failed!")
                     for error in result.errors:
@@ -162,7 +155,7 @@ def run_brand_builder():
                     "Brand_Values": ', '.join(result.data.get("brand_values", [])) if isinstance(result.data.get("brand_values"), list) else result.data.get("brand_values", ""),
                     "Brand_Mission": result.data.get("brand_mission", ""),
                 }
-                db_manager.update_client_profile(client_page_id, notion_data)
+                client_manager.db_manager.update_client_profile(client_page_id, notion_data)
             else:
                 st.error("❌ Step 2 failed!")
                 for error in result.errors:
@@ -207,7 +200,10 @@ def run_brand_builder():
                     elif isinstance(value, str):
                         notion_data[key] = value
                 
-                db_manager.update_client_profile(client_page_id, notion_data)
+                client_manager.db_manager.update_client_profile(client_page_id, notion_data)
+                
+                # Mark Brand Builder as complete
+                client_manager.mark_tool_complete("brand_builder")
 
 
 # Export the main functions for backward compatibility

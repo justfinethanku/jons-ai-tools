@@ -15,7 +15,8 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from tools.brand_builder import WorkflowStep, WorkflowContext, StepResult
-from frameworks import universal_framework, research_tools_framework
+from frameworks import universal_framework
+from frameworks.shared_utilities import clean_json_response, safe_json_parse
 from frameworks.prompt_wrappers import prompt_wrapper
 from database_config import VOICE_GUIDELINES_DB_ID, NOTION_API_KEY
 from notion_client import Client
@@ -132,9 +133,9 @@ def robust_json_parse(response_text):
     except json.JSONDecodeError:
         pass  # Continue to Strategy 3
     
-    # Strategy 3: Try research_tools_framework.clean_json_response
+    # Strategy 3: Try shared_utilities.clean_json_response
     try:
-        cleaned = research_tools_framework.clean_json_response(response_text)
+        cleaned = clean_json_response(response_text)
         result_data = json.loads(cleaned)
         return True, result_data, None
         

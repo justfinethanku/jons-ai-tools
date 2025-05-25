@@ -173,8 +173,30 @@ class BrandBuilderWorkflow:
         # Order steps by number
         self.step_order = sorted(self.steps.keys())
     
+    def validate_step_dependencies(self, step_number: int, context: WorkflowContext) -> tuple[bool, list, list]:
+        """Validate that step dependencies are met"""
+        errors = []
+        warnings = []
+        
+        if step_number not in self.steps:
+            errors.append(f"Step {step_number} not found")
+            return False, errors, warnings
+        
+        step = self.steps[step_number]
+        dependencies = step.get_dependencies()
+        
+        for dep in dependencies:
+            # Check if dependency step has been completed successfully
+            dep_result = context.get_step_result(dep)
+            if not dep_result:
+                errors.append(f"Dependency '{dep}' has not been completed")
+            elif not dep_result.success:
+                errors.append(f"Dependency '{dep}' failed - cannot proceed")
+        
+        return len(errors) == 0, errors, warnings
+    
     def run_step(self, step_number: int, context: WorkflowContext) -> StepResult:
-        """Run a specific step"""
+        """Run a specific step with dependency validation"""
         if step_number not in self.steps:
             return StepResult(
                 success=False,
@@ -186,6 +208,17 @@ class BrandBuilderWorkflow:
         
         step = self.steps[step_number]
         
+        # Validate step dependencies
+        deps_valid, dep_errors, dep_warnings = self.validate_step_dependencies(step_number, context)
+        if not deps_valid:
+            return StepResult(
+                success=False,
+                data={},
+                errors=dep_errors,
+                warnings=dep_warnings,
+                step_name=step.name
+            )
+        
         # Validate inputs
         missing_inputs = step.validate_inputs(context)
         if missing_inputs:
@@ -193,13 +226,16 @@ class BrandBuilderWorkflow:
                 success=False,
                 data={},
                 errors=[f"Missing required inputs: {', '.join(missing_inputs)}"],
-                warnings=[],
+                warnings=dep_warnings,
                 step_name=step.name
             )
         
         # Execute step
         try:
             result = step.execute(context)
+            # Merge dependency warnings with step warnings
+            if dep_warnings:
+                result.warnings.extend(dep_warnings)
             context.add_step_result(result)
             return result
         except Exception as e:
@@ -207,7 +243,7 @@ class BrandBuilderWorkflow:
                 success=False,
                 data={},
                 errors=[f"Step execution failed: {str(e)}"],
-                warnings=[],
+                warnings=dep_warnings,
                 step_name=step.name
             )
     

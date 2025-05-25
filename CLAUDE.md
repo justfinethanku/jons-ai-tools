@@ -246,3 +246,26 @@ This architecture ensures optimal prompt structure without sacrificing flexibili
 - `tools/brand_builder/step_03_content_collector.py` - Verify fixes work correctly
 - `brand_builder_audit_plan.md` - Continue with Step 4: Voice Auditor audit
 - Database configurations and Content Samples schema validation
+
+### **Sitemap Enhancement Implementation Plan**
+
+Phase 1: Research & Design (High Priority)
+- Research current Step 1 and existing Notion schemas
+- Design Website Pages database with proper client_id relationships
+
+Phase 2: Core Implementation (High Priority)
+- Build cascading URL discovery (sitemap → robots.txt → navigation)
+- Integrate Notion database saving functionality
+
+Phase 3: Intelligence Layer (Medium Priority)
+- Add blog detection and AI-generated content analysis
+- Update downstream steps (3,4,6,8) to leverage stored website data
+
+Phase 4: Validation (Medium Priority)
+- End-to-end testing with real client data
+
+This approach ensures we:
+1. Don't break existing functionality by researching first
+2. Design proper data relationships before implementation
+3. Build incrementally with core features first
+4. Maximize value by enhancing multiple Brand Builder steps

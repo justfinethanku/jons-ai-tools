@@ -21,7 +21,7 @@ class NotionDatabaseManager:
         
         # Get database IDs for content samples and voice guidelines
         self.content_samples_database_id = st.secrets["notion"]["Content_Samples_database_ID"]
-        self.voice_guidelines_database_id = st.secrets["notion"]["voice_guidlines_database_id"]
+        self.voice_guidelines_database_id = st.secrets["notion"]["voice_guidelines_database_id"]
     
     def get_client_list(self):
         """Get a list of all clients"""
@@ -491,20 +491,20 @@ def client_selector_sidebar(db_manager=None, allow_new_client=False):
             if create_button and new_client_name:
                 # Import analysis functions if website URL provided
                 if website_url.strip():
-                    # Import the analysis functions from brand_builder
+                    # Import the analysis functions using shared utilities to avoid circular imports
                     try:
-                        from tools.brand_builder import extract_website_data, analyze_brand_voice
+                        from frameworks.shared_utilities import extract_website_data_safely, analyze_brand_voice_safely
                         
                         # Step 1: Extract website data
                         with st.spinner("Step 1: Extracting company data from website..."):
-                            step1_success, website_data, step1_error = extract_website_data(new_client_name, website_url.strip())
+                            step1_success, website_data, step1_error = extract_website_data_safely(new_client_name, website_url.strip())
                             
                         if step1_success:
                             st.sidebar.success("✅ Step 1 complete: Company data extracted")
                             
                             # Step 2: Analyze brand voice
                             with st.spinner("Step 2: Analyzing brand voice..."):
-                                step2_success, analysis_result, step2_error = analyze_brand_voice(new_client_name, website_data)
+                                step2_success, analysis_result, step2_error = analyze_brand_voice_safely(new_client_name, website_data)
                                 
                             if step2_success:
                                 st.sidebar.success("✅ Step 2 complete: Brand voice analysis finished")

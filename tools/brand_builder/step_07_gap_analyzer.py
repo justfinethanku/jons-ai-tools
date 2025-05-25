@@ -31,8 +31,43 @@ class GapAnalyzerTool(WorkflowStep):
     def get_output_fields(self):
         return ['competitive_analysis', 'strategic_gaps', 'opportunities']
     
+    def validate_context(self, context: WorkflowContext):
+        """Validate context data and return (is_valid, errors, warnings)"""
+        errors = []
+        warnings = []
+        
+        # Check required fields
+        if not context.get('client_name'):
+            errors.append("Missing required field: client_name")
+        
+        # Check recommended fields for quality
+        recommended_fields = {
+            'industry': 'Industry context is essential for competitive analysis',
+            'voice_traits': 'Voice traits help identify positioning gaps',
+            'detailed_personas': 'Audience personas guide gap identification',
+            'brand_values': 'Brand values inform competitive differentiation',
+            'competitive_differentiation': 'Existing differentiation data improves analysis'
+        }
+        
+        for field, reason in recommended_fields.items():
+            if not context.get(field):
+                warnings.append(f"Missing recommended field '{field}': {reason}")
+        
+        return len(errors) == 0, errors, warnings
+    
     def execute(self, context: WorkflowContext) -> StepResult:
         """Execute gap analysis"""
+        # Validate context first
+        is_valid, errors, warnings = self.validate_context(context)
+        if not is_valid:
+            return StepResult(
+                success=False,
+                data={},
+                errors=errors,
+                warnings=warnings,
+                step_name=self.name
+            )
+        
         client_name = context.get('client_name')
         
         try:
@@ -57,8 +92,19 @@ class GapAnalyzerTool(WorkflowStep):
                 competitive_context=context.get('competitive_differentiation', 'Not specified')
             )
             
-            # Call API
-            response = universal_framework.call_gemini_api(prompt, temperature=temperature)
+            # Define API schema for validation
+            api_schema = {
+                "type": "object",
+                "properties": {
+                    "competitive_analysis": {"type": "object"},
+                    "strategic_gaps": {"type": "array", "items": {"type": "object"}},
+                    "opportunities": {"type": "array", "items": {"type": "string"}}
+                },
+                "required": ["competitive_analysis", "strategic_gaps", "opportunities"]
+            }
+            
+            # Call API with schema validation
+            response = universal_framework.call_gemini_api(prompt, response_schema=api_schema, temperature=temperature)
             
             # Check for API error responses
             if response.startswith("Error:"):
@@ -66,17 +112,27 @@ class GapAnalyzerTool(WorkflowStep):
                     success=False,
                     data={},
                     errors=[f"API call failed: {response}"],
-                    warnings=[],
+                    warnings=warnings,
                     step_name=self.name
                 )
             
-            result_data = json.loads(response)
+            # Parse response with error handling
+            try:
+                result_data = json.loads(response)
+            except json.JSONDecodeError as e:
+                return StepResult(
+                    success=False,
+                    data={},
+                    errors=[f"Failed to parse API response: {str(e)}"],
+                    warnings=warnings,
+                    step_name=self.name
+                )
             
             return StepResult(
                 success=True,
                 data=result_data,
                 errors=[],
-                warnings=[],
+                warnings=warnings,
                 step_name=self.name
             )
             
@@ -85,7 +141,7 @@ class GapAnalyzerTool(WorkflowStep):
                 success=False,
                 data={},
                 errors=[f"Gap analysis failed: {str(e)}"],
-                warnings=[],
+                warnings=warnings,
                 step_name=self.name
             )
 

@@ -94,10 +94,10 @@ def run_refiner(
 
         # Handle revision
         if revise_clicked and revision_request.strip():
-            # Import the revise function
-            from tools.prompt_refiner import revise_prompt
+            # Import the revise function using shared utilities to avoid circular imports
+            from frameworks.shared_utilities import revise_prompt_safely
             
-            revised = revise_prompt(st.session_state["refined"], revision_request)
+            revised = revise_prompt_safely(st.session_state["refined"], revision_request)
             st.session_state["refined"] = revised
             st.session_state["revision_history"].append(revised)
             

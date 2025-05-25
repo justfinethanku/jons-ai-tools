@@ -31,8 +31,45 @@ class VoiceAuditorTool(WorkflowStep):
     def get_output_fields(self):
         return ['voice_audit_summary', 'content_analysis', 'voice_patterns']
     
+    def validate_context(self, context: WorkflowContext):
+        """Validate context data and return (is_valid, errors, warnings)"""
+        errors = []
+        warnings = []
+        
+        # Check required fields
+        if not context.get('client_name'):
+            errors.append("Missing required field: client_name")
+        
+        if not context.get('content_samples'):
+            warnings.append("No content samples available - audit will be limited")
+        
+        # Check recommended fields for quality
+        recommended_fields = {
+            'brand_mission': 'Brand mission helps evaluate voice alignment',
+            'brand_values': 'Brand values provide voice consistency criteria',
+            'brand_personality_traits': 'Personality traits guide voice assessment',
+            'communication_tone': 'Tone guidelines improve audit accuracy'
+        }
+        
+        for field, reason in recommended_fields.items():
+            if not context.get(field):
+                warnings.append(f"Missing recommended field '{field}': {reason}")
+        
+        return len(errors) == 0, errors, warnings
+    
     def execute(self, context: WorkflowContext) -> StepResult:
         """Execute voice audit"""
+        # Validate context first
+        is_valid, errors, warnings = self.validate_context(context)
+        if not is_valid:
+            return StepResult(
+                success=False,
+                data={},
+                errors=errors,
+                warnings=warnings,
+                step_name=self.name
+            )
+        
         client_name = context.get('client_name')
         
         try:
@@ -56,8 +93,19 @@ class VoiceAuditorTool(WorkflowStep):
                 industry_context=industry_context
             )
             
-            # Call API
-            response = universal_framework.call_gemini_api(prompt, temperature=temperature)
+            # Define API schema for validation
+            api_schema = {
+                "type": "object",
+                "properties": {
+                    "voice_audit_summary": {"type": "string"},
+                    "content_analysis": {"type": "array", "items": {"type": "object"}},
+                    "voice_patterns": {"type": "array", "items": {"type": "string"}}
+                },
+                "required": ["voice_audit_summary", "content_analysis", "voice_patterns"]
+            }
+            
+            # Call API with schema validation
+            response = universal_framework.call_gemini_api(prompt, response_schema=api_schema, temperature=temperature)
             
             # Check for API error responses
             if response.startswith("Error:"):
@@ -65,18 +113,27 @@ class VoiceAuditorTool(WorkflowStep):
                     success=False,
                     data={},
                     errors=[f"API call failed: {response}"],
-                    warnings=[],
+                    warnings=warnings,
                     step_name=self.name
                 )
             
-            # Parse response (implement robust parsing if needed)
-            result_data = json.loads(response)
+            # Parse response with error handling
+            try:
+                result_data = json.loads(response)
+            except json.JSONDecodeError as e:
+                return StepResult(
+                    success=False,
+                    data={},
+                    errors=[f"Failed to parse API response: {str(e)}"],
+                    warnings=warnings,
+                    step_name=self.name
+                )
             
             return StepResult(
                 success=True,
                 data=result_data,
                 errors=[],
-                warnings=[],
+                warnings=warnings,
                 step_name=self.name
             )
             
@@ -85,7 +142,7 @@ class VoiceAuditorTool(WorkflowStep):
                 success=False,
                 data={},
                 errors=[f"Voice audit failed: {str(e)}"],
-                warnings=[],
+                warnings=warnings,
                 step_name=self.name
             )
 
