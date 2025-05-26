@@ -1,161 +1,156 @@
+Here's your updated README reflecting the recent improvements:
+
+```markdown
 # Jon's AI Tools
 
-## Technical Overview
+Enterprise-grade AI toolkit for automated brand research and content generation. Built with Streamlit, Python, and Google Gemini 2.0 Flash. Features robust Notion integration with automatic retry logic and structured logging.
 
-AI-powered toolkit for brand research and content generation. Built with Streamlit, Python, and Google Gemini 2.5 Flash. Features modular prompt architecture, Notion database integration, and systematic workflow orchestration with clean, maintainable codebase.
+## 🚀 Key Features
 
----
+- **Automated Brand Analysis**: 9-step pipeline from website URL to complete brand profile
+- **Enterprise Reliability**: Exponential backoff retry logic on all API calls
+- **Production Monitoring**: Structured logging with operation tracking
+- **Unified Architecture**: Zero code duplication, single source of truth patterns
+- **Multi-Platform Content**: Adaptive copy generation for all major social platforms
 
-## Core Tools
+## 🛠️ Tools
 
-### **Brand Builder** - 9-Step Workflow System
-Fully automated brand research and analysis pipeline with comprehensive Notion database integration.
+### Brand Builder
+Fully automated 9-step brand research pipeline
+- **Step 1**: Website extraction with intelligent sitemap discovery
+- **Steps 2-9**: Deep brand analysis (voice, audience, personality)
+- **Output**: Auto-populates 3 connected Notion databases
+- **No manual input** after initial URL entry
 
-**Architecture**: Consolidated workflow with step01 handling complete website extraction and analysis, while steps 02-09 provide specialized brand analysis functions.
+### Copy Generator
+AI-powered content adaptation
+- Platform-specific optimization (Facebook, LinkedIn, TikTok, YouTube)
+- Maintains brand voice consistency
+- Built-in tone adjustments
 
-**Key Components**:
-- **Step 1**: Complete automated website extraction (sitemap discovery, content analysis, Notion integration)
-- **Steps 2-9**: Specialized brand analysis modules
-- **Unified Client Manager**: Sophisticated Streamlit UI with session isolation and progress tracking
-- **Research Tools Framework**: Production-grade Notion database operations
+### Prompt Refiner
+Iterative prompt engineering assistant
+- Real-time refinement suggestions
+- Version history with undo
+- Meta-prompt optimization
 
-**Database Integration**: 3 connected Notion databases (AI Client Library, Voice Guidelines, Content Samples)
+### Coder Helper
+Technical prompt optimization for development tasks
 
-### **Copy Generator** - Social Media Content Generation
-Platform-specific content adaptation with brand voice consistency.
+## 📋 Setup
 
-**Platforms**: Facebook, LinkedIn, TikTok, YouTube, Generic
-**Features**: Character limits, hashtag optimization, brand voice application
+```bash
+# Clone repository
+git clone [repository-url]
+cd jons-ai-tools
 
-### **Prompt Refiner** - Prompt Engineering Tool
-Iterative prompt improvement using structured methodologies.
+# Configure environment
+cp .streamlit/secrets.toml.template .streamlit/secrets.toml
+# Edit .streamlit/secrets.toml with your API keys:
+# - OpenAI API key
+# - Google Gemini API key  
+# - Notion integration token
 
-### **Coder Helper** - Technical Prompt Optimization
-Specialized for development and technical documentation tasks.
+# Install dependencies
+pip install -r requirements.txt
 
----
+# Run application
+streamlit run app.py
+```
 
-## Architecture Overview
+## 🏗️ Architecture
 
-### **Clean Framework Structure**
-- **`frameworks/`** - Core business logic and AI integrations
-  - `research_tools_framework.py` - Production Notion database management
-  - `unified_client_manager.py` - Sophisticated Streamlit UI with session isolation
-  - `universal_framework.py` - AI API integrations and prompt enhancement
-  - `database_manager.py` - Enterprise-grade database operations
-- **`tools/`** - Main application tools
-  - `brand_builder/step_01_website_extractor.py` - Complete automated extraction pipeline
-  - Individual step modules for specialized analysis
-- **`xfindandfixshit/`** - All testing and debugging utilities
-  - `tests/` - Production test suite (unit, integration, functional)
-  - `debug/` - Debug scripts organized by component
-  - `legacy/` - Archived obsolete code
+```
+frameworks/
+├── database_manager.py        # Notion operations with retry logic
+├── unified_client_manager.py  # Centralized client selection
+├── universal_framework.py     # AI/API integrations
+├── shared_utils.py           # Common utilities
+└── logging_manager.py        # Structured logging system
 
-### **Recent Architecture Improvements**
-- ✅ **Eliminated Redundancy**: Removed duplicate client management systems
-- ✅ **Centralized Testing**: All tests and debug scripts moved to `xfindandfixshit/`
-- ✅ **Fixed Circular Imports**: Moved workflow base classes to appropriate modules
-- ✅ **Simplified Dependencies**: Removed over-engineered utility layers
-- ✅ **Clean Consolidation**: Single source of truth for each functionality
+tools/
+└── brand_builder/
+    ├── step_01_website_extractor.py  # Automated extraction
+    └── steps_02-09_*.py             # Analysis modules
 
----
+xfindandfixshit/             # Testing & debugging
+├── tests/                   # Test suite
+├── debug/                   # Debug utilities
+└── legacy/                  # Archived code
+```
 
-## Setup
+## 🗄️ Notion Integration
 
-1. **Clone Repository**
-   ```bash
-   git clone [repository-url]
-   cd jons-ai-tools
-   ```
+**Three Connected Databases:**
+```
+AI Client Library (Main)
+├── Content Samples (1:N relation)
+├── Voice Guidelines (1:N relation)
+└── 40+ fields including social URLs, brand values, tool tracking
+```
 
-2. **Configure Secrets**
-   ```bash
-   cp .streamlit/secrets.toml.template .streamlit/secrets.toml
-   # Add Gemini API key and Notion credentials
-   ```
+**Features:**
+- Automatic retry on API failures
+- Field validation and sanitization
+- Progress tracking with checkboxes
+- JSON storage for workflow data
 
-3. **Install Dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+## 🧪 Testing
 
-4. **Launch Application**
-   ```bash
-   streamlit run app.py
-   ```
+```bash
+cd xfindandfixshit
+pytest tests/ -v
 
-5. **Run Tests**
-   ```bash
-   cd xfindandfixshit
-   pytest tests/
-   ```
+# Run specific test
+pytest tests/test_database_manager.py
 
----
+# With coverage
+pytest tests/ --cov=frameworks --cov=tools
+```
 
-## Database Schema
+## 💻 Development
 
-### **Notion Databases (3 Connected)**
-1. **AI Client Library** - Main client records with comprehensive business data
-2. **Voice Guidelines** - Brand analysis results and voice characteristics
-3. **Content Samples** - Content strategy data and sample analysis
+### Core Principles
+- **Single Responsibility**: One purpose per module
+- **No Circular Imports**: Clean dependency hierarchy
+- **Unified Patterns**: Use `unified_client_manager` for all client ops
+- **Structured Logging**: Use `logging_manager`, never basic logging
 
-### **Relationships**
-- Voice Guidelines → AI Client Library (Many-to-One)
-- Content Samples → AI Client Library (Many-to-One)
+### Adding New Features
+1. Tests go in `xfindandfixshit/tests/`
+2. Use retry logic for external API calls
+3. Log operations with structured logging
+4. Follow existing patterns in `shared_utils.py`
 
----
+## 📊 Monitoring
 
-## Development Guidelines
+The system logs structured data for all operations:
+- Operation start/success/failure
+- API call performance
+- Database operations
+- Error tracking with context
 
-### **Code Organization**
-- **New tests** → `xfindandfixshit/tests/` (unit/integration/functional)
-- **Debug scripts** → `xfindandfixshit/debug/` (organized by component)
-- **Obsolete code** → `xfindandfixshit/legacy/` (archive, don't delete)
-- **Business logic** → `frameworks/` and `tools/`
+## 🚦 Status
 
-### **Architecture Principles**
-- **Single Responsibility** - Each module has one clear purpose
-- **No Circular Dependencies** - Clean import hierarchies
-- **Centralized Utilities** - Common functions in appropriate frameworks
-- **Session Isolation** - Per-tool state management in Streamlit
-- **Error Boundary** - Comprehensive error handling and recovery
+**Production-ready, enterprise-grade architecture, zero technical debt**
 
----
+Recent improvements:
+- ✅ Consolidated client selection (no duplicates)
+- ✅ Retry logic on all Notion API calls
+- ✅ Structured logging throughout
+- ✅ Shared utilities module
+- ✅ Dead code removed
 
-## Development Roadmap
+## 🎯 Roadmap
 
-### **Current Status: Production Ready**
-- ✅ **Complete architecture consolidation** 
-- ✅ **Eliminated all redundant systems**
-- ✅ **Comprehensive testing structure in place**
-- ✅ **Clean, maintainable codebase**
-- 🎯 **Ready for active development and client workflows**
+1. **Testing**: Expand coverage for steps 2-9
+2. **Performance**: Implement API response caching
+3. **UI**: Dashboard for monitoring operations
+4. **Scale**: Queue system for bulk processing
 
-### **Short Term Enhancement Opportunities**
-1. **Performance Optimization**: API response caching and request batching
-2. **Enhanced Testing**: Expand test coverage for all workflow components
-3. **UI/UX Improvements**: Enhanced Streamlit interface and user experience
-4. **Monitoring**: Error tracking and performance metrics collection
+## 📝 License
 
-### **Long Term Innovation**
-1. **Scale Modular Architecture**: Apply proven patterns to other tools
-2. **Multi-Model Integration**: Add support for Claude, OpenAI, and other AI providers
-3. **Advanced Workflow Orchestration**: Parallel processing and complex task coordination
-4. **Enterprise Features**: Advanced authentication, audit trails, and compliance
+uh... beats me. 
 
-### **Technical Debt: Resolved**
-- ✅ **Circular Dependencies**: Completely eliminated
-- ✅ **Redundant Code**: All duplicate systems removed
-- ✅ **Testing Chaos**: Centralized in `xfindandfixshit/`
-- ✅ **Import Complexity**: Simplified to clear hierarchies
-- ✅ **Session State Issues**: Isolated per-tool management
+## 🤝 Contributing
 
----
-
-## Key Technical Files
-
-- **`tools/brand_builder/step_01_website_extractor.py`** - Complete automated extraction pipeline
-- **`frameworks/unified_client_manager.py`** - Sophisticated client management UI
-- **`frameworks/research_tools_framework.py`** - Production database operations
-- **`xfindandfixshit/`** - All testing and debugging utilities
-- **`CLAUDE.md`** - Development session documentation and architecture decisions

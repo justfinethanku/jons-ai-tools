@@ -1,4 +1,5 @@
 """
+logging_manager 
 Structured Logging Framework for AI Tools Project.
 Provides consistent, structured logging across all components.
 """

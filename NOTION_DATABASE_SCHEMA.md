@@ -1,16 +1,16 @@
 # Notion Database Schema Reference
 
-This document outlines the complete structure of all Notion databases used in the AI Tools project.
+*Auto-generated on: 2025-05-25 21:27:18*
 
 ## Database Overview
 
 The system uses three interconnected Notion databases:
 
-1. **AI Client Library** - Main client management database
-2. **Content Samples** - Content collection and analysis  
-3. **Voice Guidelines** - Final brand voice documentation
+1. **AI Client Library** - Central client management and workflow tracking
+2. **Content Samples** - Store and analyze client content for voice development
+3. **Voice Guidelines** - Comprehensive brand voice documentation and guidelines
 
-## 📋 AI Client Library (Main Database)
+## 📋 AI Client Library
 **Database ID**: `1fd72022-1e76-81ce-9f16-e77cd8075e3b`  
 **Purpose**: Central client management and workflow tracking
 
@@ -18,31 +18,50 @@ The system uses three interconnected Notion databases:
 
 | Property | Type | Description | Options/Details |
 |----------|------|-------------|-----------------|
-| **Name** | title | Client company name | Primary identifier |
-| **Industry** | select | Business sector | Technology, Healthcare, Finance, Education, Retail, Manufacturing, Professional Services, Non-profit, Other, Web Development and Digital Marketing, Portrait Photography |
-| **Website** | url | Company website | |
-| **Contact_Email** | email | Primary contact email | |
-| **Phone_Number** | phone | Contact phone number | |
-| **Location** | rich_text | Company location/address | |
-| **Company_Size** | select | Number of employees | 1-10 employees, 11-50 employees, 51-200 employees, 201-500 employees, 501+ employees |
-| **Company_Description** | rich_text | What the company does | |
-| **Brand_Mission** | rich_text | Company mission statement | |
-| **Brand_Values** | rich_text | Core company values | |
-| **Value_Proposition** | rich_text | Unique value proposition | |
-| **Target_Audience** | rich_text | Current target audience | |
-| **Ideal_Target_Audience** | rich_text | Ideal target audience goals | |
-| **Communication_Tone** | select | Preferred communication style | Professional, Friendly, Authoritative, Casual, Inspirational |
-| **Content_Samples** | relation | Links to Content Samples database | |
-| **Voice_Guidelines** | relation | Links to Voice Guidelines database | |
-| **Project_Tracker** | relation | Links to project tracking database | |
-| **Progress_Average** | rollup | Overall workflow completion % | Calculated from project tracker |
-| **Content_Count** | rollup | Number of content samples collected | Calculated from content samples |
-| **Voice_Status** | rollup | Voice guidelines completion status | Calculated from voice guidelines |
-| **Last_Updated** | last_edited_time | When record was last modified | Auto-generated |
-| **Project_Count** | rollup | Number of projects for client | Calculated from project tracker |
-| **Last_Project_Update** | rollup | Most recent project activity | Calculated from project tracker |
+| **Audience_Definer_Complete** | checkbox |  |  |
+| **Brand_Builder_Complete** | checkbox |  |  |
+| **Brand_Mission** | rich_text |  |  |
+| **Brand_Personality** | rich_text |  |  |
+| **Brand_Values** | rich_text |  |  |
+| **Communication_Tone** | rich_text |  |  |
+| **Company_Description** | rich_text |  |  |
+| **Company_Size** | select |  | 1-10 employees, 11-50 employees, 51-200 employees, 201-500 employees, 501+ employees |
+| **Contact_Email** | email |  |  |
+| **Content_Collector_Complete** | checkbox |  |  |
+| **Content_Count** | rollup |  | Calculated from Content_Samples |
+| **Content_Rewriter_Complete** | checkbox |  |  |
+| **Content_Samples** | relation |  | Links to Content Samples |
+| **Deep_Research_Workflow** | rich_text |  |  |
+| **Desired_Emotional_Impact** | rich_text |  |  |
+| **Facebook_URL** | rich_text |  |  |
+| **Gap_Analyzer_Complete** | checkbox |  |  |
+| **Guidelines_Finalizer_Complete** | checkbox |  |  |
+| **Ideal_Target_Audience** | rich_text |  |  |
+| **Industry** | rich_text | Business sector |  |
+| **Instagram_URL** | rich_text |  |  |
+| **Last_Project_Update** | rollup |  | Calculated from Project_Tracker |
+| **Last_Tool_Completed** | rich_text |  |  |
+| **Last_Updated** | last_edited_time | Last modification date | Auto-generated |
+| **LinkedIn_URL** | rich_text |  |  |
+| **Location** | rich_text |  |  |
+| **Name** | title | Primary identifier | Primary identifier |
+| **Other_Social_Media** | rich_text |  |  |
+| **Phone_Number** | phone_number |  |  |
+| **Product_Service_Description** | rich_text |  |  |
+| **Progress_Average** | rollup |  | Calculated from Project_Tracker |
+| **Project_Count** | rollup |  | Calculated from Project_Tracker |
+| **Project_Tracker** | relation |  | Links to Unknown |
+| **Research_Status** | select |  | In Progress |
+| **Target_Audience** | rich_text |  |  |
+| **Twitter_URL** | rich_text |  |  |
+| **Value_Proposition** | rich_text |  |  |
+| **Voice_Auditor_Complete** | checkbox |  |  |
+| **Voice_Guidelines** | relation |  | Links to Voice Guidelines |
+| **Voice_Status** | rollup |  | Calculated from Voice_Guidelines |
+| **Voice_Traits_Builder_Complete** | checkbox |  |  |
+| **Website** | url | Company website URL |  |
 
-## 📋 Content Samples Database
+## 📋 Content Samples
 **Database ID**: `1fd72022-1e76-8119-9f36-d4ce24c04d86`  
 **Purpose**: Store and analyze client content for voice development
 
@@ -50,19 +69,21 @@ The system uses three interconnected Notion databases:
 
 | Property | Type | Description | Options/Details |
 |----------|------|-------------|-----------------|
-| **Name** | title | Sample identifier/description | |
-| **Client** | relation | Links back to AI Client Library | |
-| **Content_Type** | select | Type of content sample | Original Sample, Rewritten Version, Generated Content, Competitor Example |
-| **Channel_Type** | select | Source channel/platform | Website Homepage, Website About, Website Services, Instagram, Facebook, LinkedIn, Twitter/X, Email Newsletter, Blog Post, Customer Service, Marketing Material, Other |
-| **Sample_Content** | rich_text | The actual content text | |
-| **Source_URL** | url | Where content originated | |
-| **Collection_Date** | date | When content was collected | |
-| **Word_Count** | number | Length of content sample | |
-| **Quality_Score** | select | Content quality rating | 5 - Perfect, 4 - Very Good, 3 - Good, 2 - Fair, 1 - Poor |
-| **Tone_Assessment** | select | Voice tone evaluation | Excellent, Good, Needs Improvement, Poor, For Review |
-| **Notes** | rich_text | Analysis notes and observations | |
+| **Channel_Type** | select |  | Website Homepage, Website About, Website Services, Instagram, Facebook, LinkedIn, Twitter/X, Email Newsletter, Blog Post, Customer Service, Marketing Material, Other |
+| **Client** | relation | Links to client record | Links to AI Client Library |
+| **Collection_Date** | date |  |  |
+| **Content_Type** | select |  | Original Sample, Rewritten Version, Generated Content, Competitor Example |
+| **Name** | title | Primary identifier | Primary identifier |
+| **Notes** | rich_text |  |  |
+| **Original_Sample** | checkbox |  |  |
+| **Quality_Score** | select |  | 5 - Perfect, 4 - Very Good, 3 - Good, 2 - Fair, 1 - Poor |
+| **Rewritten_Version** | checkbox |  |  |
+| **Sample_Content** | rich_text |  |  |
+| **Source_URL** | url |  |  |
+| **Tone_Assessment** | select |  | Excellent, Good, Needs Improvement, Poor, For Review |
+| **Word_Count** | number |  |  |
 
-## 📋 Voice Guidelines Database
+## 📋 Voice Guidelines
 **Database ID**: `1fd72022-1e76-8117-9d2f-ed89252b6bc3`  
 **Purpose**: Comprehensive brand voice documentation and guidelines
 
@@ -70,24 +91,24 @@ The system uses three interconnected Notion databases:
 
 | Property | Type | Description | Options/Details |
 |----------|------|-------------|-----------------|
-| **Name** | title | Guidelines identifier | |
-| **Client** | relation | Links back to AI Client Library | |
-| **Status** | select | Development status | Draft, In Progress, Review, Final, Archived |
-| **Voice_Characteristics** | multi_select | Key voice traits | (Dynamic - populated during workflow) |
-| **Brand_Personality_Traits** | multi_select | Personality descriptors | (Dynamic - populated during workflow) |
-| **Tone_Description** | rich_text | How the brand should sound | |
-| **Tone_Analysis** | rich_text | Detailed tone breakdown | |
-| **Personality_Analysis** | rich_text | Brand personality assessment | |
-| **Word_Choice_Guidelines** | rich_text | Preferred language patterns | |
-| **Words_To_Avoid** | rich_text | Language to avoid | |
-| **Signature_Phrases** | rich_text | Brand-specific phrases | |
-| **Audience_Fit_Assessment** | rich_text | How voice fits target audience | |
-| **Consistency_Assessment** | rich_text | Voice consistency analysis | |
-| **Identified_Gaps** | rich_text | Areas needing improvement | |
-| **Word_Choice_Analysis** | rich_text | Language pattern analysis | |
-| **Recommendations** | rich_text | Implementation recommendations | |
-| **Implementation_Notes** | rich_text | How to use these guidelines | |
-| **Last_Updated** | date | When guidelines were last modified | |
+| **Audience_Fit_Assessment** | rich_text |  |  |
+| **Brand_Personality_Traits** | multi_select |  |  |
+| **Client** | relation | Links to client record | Links to AI Client Library |
+| **Consistency_Assessment** | rich_text |  |  |
+| **Identified_Gaps** | rich_text |  |  |
+| **Implementation_Notes** | rich_text |  |  |
+| **Last_Updated** | date | Last modification date |  |
+| **Name** | title | Primary identifier | Primary identifier |
+| **Personality_Analysis** | rich_text |  |  |
+| **Recommendations** | rich_text |  |  |
+| **Signature_Phrases** | rich_text |  |  |
+| **Status** | select | Current status | Draft, In Progress, Review, Final, Archived |
+| **Tone_Analysis** | rich_text |  |  |
+| **Tone_Description** | rich_text |  |  |
+| **Voice_Characteristics** | multi_select |  |  |
+| **Word_Choice_Analysis** | rich_text |  |  |
+| **Word_Choice_Guidelines** | rich_text |  |  |
+| **Words_To_Avoid** | rich_text |  |  |
 
 ## Database Relationships
 
@@ -104,16 +125,9 @@ Voice Guidelines Database
 └── Client (relation) → AI Client Library
 ```
 
-## Workflow Integration
-
-1. **Client Creation**: New clients added to AI Client Library
-2. **Content Collection**: Brand Builder collects content → Content Samples Database
-3. **Voice Analysis**: Content analyzed to create → Voice Guidelines Database
-4. **Progress Tracking**: Rollup fields show completion status in AI Client Library
-
 ## Access Configuration
 
-All databases are accessed via the Notion integration configured in `.streamlit/secrets.toml`:
+All databases are accessed via the Notion integration:
 
 ```toml
 [notion]
@@ -126,4 +140,4 @@ voice_guidelines_database_id = "1fd72022-1e76-8117-9d2f-ed89252b6bc3"
 ---
 
 *Last Updated: 2025-05-25*  
-*Generated by AI Tools Brand Builder System*
+*Generated by Notion Schema Puller*

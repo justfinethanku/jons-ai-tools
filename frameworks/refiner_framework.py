@@ -1,3 +1,6 @@
+"""
+refiner_framework 
+"""
 import streamlit as st
 
 # Reduce sidebar width for the refiner framework
@@ -17,16 +20,11 @@ st.markdown(
 def run_refiner(
     tool_name,
     refine_func,
-    _explain_func,  # Keep for compatibility but ignore
     meta_prompt,
-    _explainer_prompt,  # Keep for compatibility but ignore
     sidebar_info,
     rough_prompt_label="Rough Prompt",
-    _show_explain=False,  # Not used anymore
     output_height=160,
 ):
-    # Unused parameters kept for backward compatibility
-    _ = _explain_func, _explainer_prompt, _show_explain  # Explicitly mark as unused
     # Optional: Tool-specific sidebar/help
     sidebar_info()
 

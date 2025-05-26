@@ -1,0 +1,411 @@
+{
+  "analysis": {
+    "client_library": {
+      "missing_in_notion": [
+        {
+          "field": "Product_Service_Description",
+          "expected_type": "rich_text",
+          "note": "Could use Company_Description instead"
+        },
+        {
+          "field": "Words_Tones_To_Avoid",
+          "expected_type": "rich_text",
+          "note": "This belongs in Voice Guidelines database"
+        },
+        {
+          "field": "LinkedIn_URL",
+          "expected_type": "rich_text",
+          "note": ""
+        },
+        {
+          "field": "Twitter_URL",
+          "expected_type": "rich_text",
+          "note": ""
+        },
+        {
+          "field": "Facebook_URL",
+          "expected_type": "rich_text",
+          "note": ""
+        },
+        {
+          "field": "Instagram_URL",
+          "expected_type": "rich_text",
+          "note": ""
+        },
+        {
+          "field": "Other_Social_Media",
+          "expected_type": "rich_text",
+          "note": ""
+        },
+        {
+          "field": "Deep_Research_Workflow",
+          "expected_type": "rich_text",
+          "note": "JSON storage for workflow data"
+        },
+        {
+          "field": "Last_Tool_Completed",
+          "expected_type": "rich_text",
+          "note": ""
+        },
+        {
+          "field": "Desired_Emotional_Impact",
+          "expected_type": "multi_select",
+          "note": ""
+        },
+        {
+          "field": "Brand_Personality",
+          "expected_type": "multi_select",
+          "note": ""
+        },
+        {
+          "field": "Research_Status",
+          "expected_type": "select",
+          "note": "For tracking workflow progress"
+        },
+        {
+          "field": "Brand_Builder_Complete",
+          "expected_type": "checkbox",
+          "note": "Tool completion tracking"
+        },
+        {
+          "field": "Content_Collector_Complete",
+          "expected_type": "checkbox",
+          "note": ""
+        },
+        {
+          "field": "Voice_Auditor_Complete",
+          "expected_type": "checkbox",
+          "note": ""
+        },
+        {
+          "field": "Audience_Definer_Complete",
+          "expected_type": "checkbox",
+          "note": ""
+        },
+        {
+          "field": "Voice_Traits_Builder_Complete",
+          "expected_type": "checkbox",
+          "note": ""
+        },
+        {
+          "field": "Gap_Analyzer_Complete",
+          "expected_type": "checkbox",
+          "note": ""
+        },
+        {
+          "field": "Content_Rewriter_Complete",
+          "expected_type": "checkbox",
+          "note": ""
+        },
+        {
+          "field": "Guidelines_Finalizer_Complete",
+          "expected_type": "checkbox",
+          "note": ""
+        }
+      ],
+      "wrong_type_in_notion": [
+        {
+          "field": "Brand_Values",
+          "expected_type": "multi_select",
+          "actual_type": "rich_text"
+        }
+      ],
+      "field_mappings": [
+        [
+          "Current_Target_Audience",
+          "Target_Audience"
+        ],
+        [
+          "Address",
+          "Location"
+        ]
+      ],
+      "extra_in_notion": [
+        {
+          "field": "Content_Samples",
+          "type": "relation"
+        },
+        {
+          "field": "Communication_Tone",
+          "type": "select"
+        },
+        {
+          "field": "Value_Proposition",
+          "type": "rich_text"
+        },
+        {
+          "field": "Project_Count",
+          "type": "rollup"
+        },
+        {
+          "field": "Company_Size",
+          "type": "select"
+        },
+        {
+          "field": "Company_Description",
+          "type": "rich_text"
+        },
+        {
+          "field": "Last_Project_Update",
+          "type": "rollup"
+        },
+        {
+          "field": "Project_Tracker",
+          "type": "relation"
+        },
+        {
+          "field": "Content_Count",
+          "type": "rollup"
+        },
+        {
+          "field": "Voice_Guidelines",
+          "type": "relation"
+        },
+        {
+          "field": "Target_Audience",
+          "type": "rich_text"
+        },
+        {
+          "field": "Location",
+          "type": "rich_text"
+        },
+        {
+          "field": "Voice_Status",
+          "type": "rollup"
+        },
+        {
+          "field": "Progress_Average",
+          "type": "rollup"
+        }
+      ],
+      "current_field_count": 23,
+      "expected_field_count": 31
+    },
+    "content_samples": {
+      "missing_in_notion": [
+        {
+          "field": "Original_Sample",
+          "expected_type": "checkbox",
+          "note": "Could use Content_Type select instead"
+        },
+        {
+          "field": "Rewritten_Version",
+          "expected_type": "checkbox",
+          "note": "Could use Content_Type select instead"
+        }
+      ],
+      "wrong_type_in_notion": [],
+      "field_mappings": [],
+      "extra_in_notion": [
+        {
+          "field": "Quality_Score",
+          "type": "select"
+        },
+        {
+          "field": "Source_URL",
+          "type": "url"
+        },
+        {
+          "field": "Collection_Date",
+          "type": "date"
+        },
+        {
+          "field": "Content_Type",
+          "type": "select"
+        },
+        {
+          "field": "Word_Count",
+          "type": "number"
+        }
+      ],
+      "current_field_count": 11,
+      "expected_field_count": 8
+    },
+    "voice_guidelines": {
+      "missing_in_notion": [],
+      "wrong_type_in_notion": [],
+      "field_mappings": [],
+      "extra_in_notion": [
+        {
+          "field": "Implementation_Notes",
+          "type": "rich_text"
+        },
+        {
+          "field": "Word_Choice_Guidelines",
+          "type": "rich_text"
+        },
+        {
+          "field": "Identified_Gaps",
+          "type": "rich_text"
+        },
+        {
+          "field": "Words_To_Avoid",
+          "type": "rich_text"
+        },
+        {
+          "field": "Recommendations",
+          "type": "rich_text"
+        },
+        {
+          "field": "Tone_Description",
+          "type": "rich_text"
+        },
+        {
+          "field": "Voice_Characteristics",
+          "type": "multi_select"
+        },
+        {
+          "field": "Brand_Personality_Traits",
+          "type": "multi_select"
+        },
+        {
+          "field": "Signature_Phrases",
+          "type": "rich_text"
+        }
+      ],
+      "current_field_count": 18,
+      "expected_field_count": 9
+    }
+  },
+  "merge_plan": {
+    "add_to_notion": {
+      "AI Client Library": [
+        {
+          "name": "Product_Service_Description",
+          "type": "rich_text",
+          "reason": "Could use Company_Description instead"
+        },
+        {
+          "name": "LinkedIn_URL",
+          "type": "rich_text",
+          "reason": "Required by code"
+        },
+        {
+          "name": "Twitter_URL",
+          "type": "rich_text",
+          "reason": "Required by code"
+        },
+        {
+          "name": "Facebook_URL",
+          "type": "rich_text",
+          "reason": "Required by code"
+        },
+        {
+          "name": "Instagram_URL",
+          "type": "rich_text",
+          "reason": "Required by code"
+        },
+        {
+          "name": "Other_Social_Media",
+          "type": "rich_text",
+          "reason": "Required by code"
+        },
+        {
+          "name": "Deep_Research_Workflow",
+          "type": "rich_text",
+          "reason": "JSON storage for workflow data"
+        },
+        {
+          "name": "Last_Tool_Completed",
+          "type": "rich_text",
+          "reason": "Required by code"
+        },
+        {
+          "name": "Desired_Emotional_Impact",
+          "type": "multi_select",
+          "reason": "Required by code"
+        },
+        {
+          "name": "Brand_Personality",
+          "type": "multi_select",
+          "reason": "Required by code"
+        },
+        {
+          "name": "Research_Status",
+          "type": "select",
+          "reason": "For tracking workflow progress"
+        },
+        {
+          "name": "Brand_Builder_Complete",
+          "type": "checkbox",
+          "reason": "Tool completion tracking"
+        },
+        {
+          "name": "Content_Collector_Complete",
+          "type": "checkbox",
+          "reason": "Required by code"
+        },
+        {
+          "name": "Voice_Auditor_Complete",
+          "type": "checkbox",
+          "reason": "Required by code"
+        },
+        {
+          "name": "Audience_Definer_Complete",
+          "type": "checkbox",
+          "reason": "Required by code"
+        },
+        {
+          "name": "Voice_Traits_Builder_Complete",
+          "type": "checkbox",
+          "reason": "Required by code"
+        },
+        {
+          "name": "Gap_Analyzer_Complete",
+          "type": "checkbox",
+          "reason": "Required by code"
+        },
+        {
+          "name": "Content_Rewriter_Complete",
+          "type": "checkbox",
+          "reason": "Required by code"
+        },
+        {
+          "name": "Guidelines_Finalizer_Complete",
+          "type": "checkbox",
+          "reason": "Required by code"
+        }
+      ],
+      "Content Samples": [
+        {
+          "name": "Original_Sample",
+          "type": "checkbox",
+          "reason": "Could use Content_Type select instead"
+        },
+        {
+          "name": "Rewritten_Version",
+          "type": "checkbox",
+          "reason": "Could use Content_Type select instead"
+        }
+      ]
+    },
+    "update_code": {
+      "AI Client Library": [
+        {
+          "field": "Brand_Values",
+          "change": "Change from multi_select to rich_text"
+        },
+        {
+          "field": "Current_Target_Audience",
+          "change": "Rename to Target_Audience"
+        },
+        {
+          "field": "Address",
+          "change": "Rename to Location"
+        }
+      ]
+    },
+    "field_mappings": {
+      "AI Client Library": [
+        [
+          "Current_Target_Audience",
+          "Target_Audience"
+        ],
+        [
+          "Address",
+          "Location"
+        ]
+      ]
+    }
+  }
+}

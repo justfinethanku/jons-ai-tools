@@ -4,7 +4,67 @@ from frameworks.refiner_framework import run_refiner
 import tools.prompt_refiner as prompt_refiner
 import tools.coder_helper as coder_helper
 from tools import social_copy_tool
-from frameworks.database_manager import run_brand_builder
+
+def run_brand_builder():
+    """Streamlit UI for Brand Builder"""
+    st.title("Brand Builder")
+    st.subheader("Automated 9-Step Brand Research Pipeline")
+    
+    st.write("Enter the client name and website URL to begin the automated brand analysis.")
+    
+    # Import the actual brand builder components
+    from tools.brand_builder.step_01_website_extractor import AutomatedWebsiteExtractor, WorkflowContext
+    
+    # Input form
+    with st.form("website_extractor"):
+        client_name = st.text_input("Client Name", placeholder="Enter client name")
+        website_url = st.text_input("Website URL", placeholder="https://example.com")
+        
+        submitted = st.form_submit_button("🚀 Start Brand Analysis")
+        
+        if submitted:
+            if not client_name or not website_url:
+                st.error("Please provide both client name and website URL")
+            else:
+                # Ensure URL has protocol
+                if not website_url.startswith('http'):
+                    website_url = f"https://{website_url}"
+                
+                # Create context and run extraction
+                context = WorkflowContext()
+                context.set_input("client_name", client_name)
+                context.set_input("website_url", website_url)
+                
+                # Run the extraction
+                with st.spinner("🔍 Analyzing website and building brand profile..."):
+                    extractor = AutomatedWebsiteExtractor()
+                    result = extractor.execute(context)
+                
+                # Show results
+                if result.success:
+                    st.success("✅ Brand analysis completed!")
+                    
+                    # Display results
+                    st.subheader("📊 Analysis Results")
+                    
+                    if result.data.get("analysis"):
+                        st.write("### Brand Analysis")
+                        st.json(result.data["analysis"])
+                    
+                    if result.data.get("content_file"):
+                        st.write(f"📁 **Content File:** `{result.data['content_file']}`")
+                    
+                    if result.data.get("sitemap_file"):
+                        st.write(f"🗺️ **Sitemap File:** `{result.data['sitemap_file']}`")
+                    
+                    if result.data.get("client_id"):
+                        st.write(f"🗄️ **Notion Client ID:** `{result.data['client_id']}`")
+                    
+                    st.balloons()
+                else:
+                    st.error("❌ Analysis failed:")
+                    for error in result.errors:
+                        st.error(f"  • {error}")
 
 # Initialize session state
 if "tool" not in st.session_state:
@@ -36,9 +96,7 @@ if st.session_state.tool == "Prompt Refiner":
     run_refiner(
         tool_name="Prompt Refiner",
         refine_func=prompt_refiner.refine_prompt,
-        explain_func=prompt_refiner.explain_prompt,
         meta_prompt=prompt_refiner.META_PROMPT,
-        explainer_prompt=prompt_refiner.EXPLAINER_PROMPT,
         sidebar_info=prompt_refiner.sidebar_info,
     )
 
@@ -46,9 +104,7 @@ if st.session_state.tool == "Coder Helper":
     run_refiner(
         tool_name="Coder Helper",
         refine_func=coder_helper.refine_prompt,
-        explain_func=coder_helper.explain_prompt,
         meta_prompt=coder_helper.META_PROMPT,
-        explainer_prompt=coder_helper.EXPLAINER_PROMPT,
         sidebar_info=coder_helper.sidebar_info,
     )
 

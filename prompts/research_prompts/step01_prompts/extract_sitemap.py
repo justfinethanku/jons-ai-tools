@@ -1,36 +1,18 @@
-"""
-Extract Sitemap Prompts
-Prompts for discovering and extracting comprehensive website sitemaps
-"""
-
 def get_page_discovery_prompt(website_url):
     """
-    Prompt for AI-assisted page discovery for comprehensive site mapping
+    Optimized prompt for AI-assisted page discovery for comprehensive site mapping,
+    designed for llm, with few-shot examples.
     """
-    return f"""You are a web crawler assistant. Given this website URL: {website_url}
+    return f"""
+You are an AI assistant.
 
-Based on the domain and typical website structures, suggest 15-20 likely pages that would exist on this website.
+Task:
+Find the sitemap for this website: {website_url}
 
-Include common pages like:
-- About us, Team, Company
-- Products, Services, Solutions
-- Contact, Support, FAQ
-- Privacy Policy, Terms of Service
-- Careers, Jobs
-- Resources, Documentation
+1. Extract a list of all important URLs from the sitemap.
+2. Do NOT include any URL that contains the word "blog" (case-insensitive).
+3. Return the final list as a JSON array of strings.
+   Example: ["https://example.com/about", "https://example.com/contact"]
 
-EXCLUDE these types of pages:
-- Blog posts, News articles, individual blog entries
-- Date-based URLs (e.g., /2024/01/blog-post)
-- Individual article or post URLs
-
-Focus on core business pages that contain stable company information, not dynamic content.
-
-Format as a simple list of full URLs, one per line. Only suggest URLs that are likely to exist.
-
-Example format:
-{website_url}/about
-{website_url}/contact
-{website_url}/services
-
-URL LIST:"""
+Return ONLY the list—no explanations or extra text.
+"""

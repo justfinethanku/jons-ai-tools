@@ -1,4 +1,5 @@
 """
+step01_website_extractor
 AUTOMATED WEBSITE EXTRACTOR - CLEAN ARCHITECTURE
 ===============================================
 
@@ -28,6 +29,10 @@ import time
 
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+# Import shared utilities and structured logging
+from frameworks.shared_utils import safe_json_parse
+from frameworks.logging_manager import get_logger, LoggedOperation
 
 # Workflow base classes
 class WorkflowContext:
@@ -64,14 +69,14 @@ class WorkflowStep:
     """Base class for workflow steps"""
     def execute(self, context: WorkflowContext) -> StepResult:
         raise NotImplementedError("Subclasses must implement execute method")
+
 from frameworks import universal_framework
 from frameworks.database_manager import NotionDatabaseManager
 from prompts.research_prompts.step01_prompts.extract_sitemap import get_page_discovery_prompt
 from prompts.research_prompts.step01_prompts.extract_client_info import (
-    get_comprehensive_analysis_prompt, 
-    get_analysis_schema
-)
-
+    get_comprehensive_analysis_prompt,
+    get_analysis_schema_optimized as get_analysis_schema
+ )
 class AutomatedWebsiteExtractor(WorkflowStep):
     """
     FULLY AUTOMATED website extraction pipeline
@@ -82,13 +87,16 @@ class AutomatedWebsiteExtractor(WorkflowStep):
     def __init__(self):
         super().__init__()
         
+        # Initialize logger
+        self.logger = get_logger("website_extractor")
+        
         # Initialize database manager with error handling
         try:
             self.db_manager = NotionDatabaseManager()
-            print("✅ NotionDatabaseManager initialized successfully")
+            self.logger.log_operation_success("initialize_database_manager")
         except Exception as e:
-            print(f"⚠️ NotionDatabaseManager failed to initialize: {e}")
-            print("⚠️ Running in OFFLINE mode - data will be saved to files only")
+            self.logger.log_operation_failure("initialize_database_manager", str(e))
+            self.logger.warning("Running in OFFLINE mode - data will be saved to files only")
             self.db_manager = None
         
         # Set up data directories
@@ -103,8 +111,7 @@ class AutomatedWebsiteExtractor(WorkflowStep):
         """
         MAIN PIPELINE: Execute the complete automated extraction workflow
         """
-        print("\\n🚀 STARTING AUTOMATED WEBSITE EXTRACTION PIPELINE")
-        print("=" * 60)
+        self.logger.info("Starting automated website extraction pipeline")
         
         try:
             # Get required inputs
@@ -120,52 +127,49 @@ class AutomatedWebsiteExtractor(WorkflowStep):
                     step_name="website_extractor"
                 )
             
-            print(f"📊 CLIENT: {client_name}")
-            print(f"🌐 WEBSITE: {website_url}")
-            print()
+            self.logger.info("Starting extraction", client_name=client_name, website_url=website_url)
             
             # Step 1: Create Notion client entry
-            print("📝 STEP 1: Creating Notion client entry...")
-            self._create_notion_client(client_name, website_url)
+            with LoggedOperation("create_notion_client", logger=self.logger, client_name=client_name):
+                self._create_notion_client(client_name, website_url)
             
             # Step 2: Generate comprehensive sitemap
-            print("\\n🗺️ STEP 2: Generating comprehensive sitemap...")
-            sitemap = self._generate_comprehensive_sitemap(website_url)
-            sitemap_file = self._save_sitemap(client_name, sitemap)
-            print(f"✅ Sitemap saved: {sitemap_file}")
+            with LoggedOperation("generate_sitemap", logger=self.logger, website_url=website_url):
+                sitemap = self._generate_comprehensive_sitemap(website_url)
+                sitemap = self._filter_sitemap_urls(sitemap)
+                sitemap_file = self._save_sitemap(client_name, sitemap)
+                self.logger.info("Sitemap saved", file_path=sitemap_file, page_count=len(sitemap))
             
             # Step 3: Extract content from all pages
-            print("\\n📄 STEP 3: Extracting content from all pages...")
-            all_content = self._extract_all_content(sitemap)
-            content_file = self._save_content(client_name, all_content)
-            
-            total_words = sum(data['word_count'] for data in all_content.values())
-            print(f"✅ Extracted {len(all_content)} pages ({total_words:,} words)")
-            print(f"✅ Content saved: {content_file}")
+            with LoggedOperation("extract_all_content", logger=self.logger, client_name=client_name):
+                all_content = self._extract_all_content(sitemap)
+                content_file = self._save_content(client_name, all_content)
+                
+                total_words = sum(data['word_count'] for data in all_content.values())
+                self.logger.info("Content extracted", 
+                               page_count=len(all_content), 
+                               total_words=total_words,
+                               content_file=content_file)
             
             # Step 4: Analyze content with Gemini
-            print("\\n🧠 STEP 4: Analyzing content with Gemini...")
-            analysis_result = self._analyze_comprehensive_content(client_name, website_url, all_content)
-            print("✅ Content analysis complete")
+            with LoggedOperation("analyze_content", logger=self.logger, client_name=client_name):
+                analysis_result = self._analyze_comprehensive_content(client_name, website_url, all_content)
+                self.logger.info("Content analysis complete")
             
             # Step 5: Update Notion with comprehensive data
-            print("\\n💾 STEP 5: Updating Notion database...")
-            self._update_notion_client(analysis_result)
-            print("✅ Notion database updated")
+            with LoggedOperation("update_notion", logger=self.logger, client_id=self.client_id):
+                self._update_notion_client(analysis_result)
+                self.logger.info("Notion database updated")
             
             # Step 6: Prepare for Step 2
-            print("\\n⏭️ STEP 6: Preparing for Step 2...")
+            self.logger.info("Preparing for Step 2")
             context.set_output("website_analysis", analysis_result)
             context.set_output("content_file", content_file)
             context.set_output("sitemap_file", sitemap_file)
             
-            print("\\n🎉 PIPELINE COMPLETED SUCCESSFULLY!")
-            print("=" * 60)
-            print(f"📊 Analysis complete for {client_name}")
-            print(f"📁 Files saved in: {self.data_dir}")
-            if self.client_id:
-                print(f"🗄️ Notion updated for client ID: {self.client_id}")
-            print("⏭️ Ready for Step 2: Brand Analysis")
+            self.logger.log_operation_success("website_extraction_pipeline",
+                                            client_name=client_name,
+                                            client_id=self.client_id)
             
             return StepResult(
                 success=True,
@@ -181,8 +185,8 @@ class AutomatedWebsiteExtractor(WorkflowStep):
             )
             
         except Exception as e:
-            error_msg = f"❌ PIPELINE FAILED: {str(e)}"
-            print(error_msg)
+            error_msg = f"Pipeline failed: {str(e)}"
+            self.logger.log_operation_failure("website_extraction_pipeline", error_msg)
             return StepResult(
                 success=False,
                 data={},
@@ -194,7 +198,7 @@ class AutomatedWebsiteExtractor(WorkflowStep):
     def _create_notion_client(self, client_name, website_url):
         """Step 1: Create initial Notion client entry"""
         if not self.db_manager:
-            print("⚠️ Skipping Notion client creation - running in offline mode")
+            self.logger.warning("Skipping Notion client creation - running in offline mode")
             return
         
         try:
@@ -202,21 +206,23 @@ class AutomatedWebsiteExtractor(WorkflowStep):
             existing_client_id = self.db_manager.get_client_page_id(client_name)
             if existing_client_id:
                 self.client_id = existing_client_id
-                print(f"✅ Found existing client with ID: {self.client_id}")
+                self.logger.info("Found existing client", client_id=self.client_id)
                 # Update status to show we're extracting
                 self._update_client_status("Extracting Website Data")
             else:
                 # Create new client entry
                 self.client_id = self.db_manager.create_new_client(client_name, "Unknown")
-                print(f"✅ New client created with ID: {self.client_id}")
+                self.logger.log_operation_success("create_new_client", 
+                                                client_id=self.client_id,
+                                                client_name=client_name)
                 
                 # Update with website URL and status
                 if self.client_id:
                     self._update_client_basic_info(website_url)
             
         except Exception as e:
-            print(f"⚠️ Failed to create Notion client: {e}")
-            print("⚠️ Continuing in offline mode")
+            self.logger.log_operation_failure("create_notion_client", str(e))
+            self.logger.warning("Continuing in offline mode")
             self.db_manager = None
     
     def _update_client_status(self, status):
@@ -226,7 +232,7 @@ class AutomatedWebsiteExtractor(WorkflowStep):
         try:
             self.db_manager.update_client_profile(self.client_id, {"Research_Status": status})
         except Exception as e:
-            print(f"⚠️ Failed to update status: {e}")
+            self.logger.warning("Failed to update client status", error=str(e))
     
     def _update_client_basic_info(self, website_url):
         """Update basic client info in Notion AI Client Library"""
@@ -239,13 +245,13 @@ class AutomatedWebsiteExtractor(WorkflowStep):
                 "Last_Updated": datetime.now().strftime("%Y-%m-%d")
             })
         except Exception as e:
-            print(f"⚠️ Failed to update basic info: {e}")
+            self.logger.warning("Failed to update basic info", error=str(e))
     
     def _generate_comprehensive_sitemap(self, website_url):
         """Step 2: Generate comprehensive sitemap using multiple methods"""
         all_pages = set()
         
-        print("🔍 Discovering pages using multiple methods...")
+        self.logger.info("Discovering pages using multiple methods")
         
         # Method 1: Try to find sitemap.xml files
         sitemap_urls = [
@@ -258,17 +264,19 @@ class AutomatedWebsiteExtractor(WorkflowStep):
             pages = self._extract_from_sitemap_xml(sitemap_url)
             all_pages.update(pages)
             if pages:
-                print(f"  📋 Found {len(pages)} pages in {sitemap_url}")
+                self.logger.info("Found pages in sitemap", 
+                               sitemap_url=sitemap_url, 
+                               page_count=len(pages))
         
         # Method 2: Homepage analysis for common page discovery
         homepage_pages = self._discover_pages_from_homepage(website_url)
         all_pages.update(homepage_pages)
-        print(f"  🏠 Found {len(homepage_pages)} pages from homepage analysis")
+        self.logger.info("Found pages from homepage", page_count=len(homepage_pages))
         
-        # Method 3: Use Gemini to intelligently guess likely pages
-        gemini_pages = self._gemini_page_discovery(website_url)
-        all_pages.update(gemini_pages)
-        print(f"  🧠 Gemini suggested {len(gemini_pages)} additional pages")
+        # Method 3: Use AI to intelligently guess likely pages
+        ai_pages = self._gemini_page_discovery(website_url)
+        all_pages.update(ai_pages)
+        self.logger.info("AI suggested pages", page_count=len(ai_pages))
         
         # Convert to list and ensure homepage is first
         pages_list = list(all_pages)
@@ -306,7 +314,7 @@ class AutomatedWebsiteExtractor(WorkflowStep):
                     href = link['href']
                     full_url = urljoin(website_url, href)
                     
-                    # Only include pages from same domain
+                    # Only include pages from same domain  
                     if urlparse(full_url).netloc == base_domain and self._is_valid_page_url(full_url):
                         pages.add(full_url)
                 
@@ -316,17 +324,20 @@ class AutomatedWebsiteExtractor(WorkflowStep):
         return []
     
     def _gemini_page_discovery(self, website_url):
-        """Use Gemini to discover likely pages"""
+        """Use AI to discover likely     pages"""
         try:
             prompt = get_page_discovery_prompt(website_url)
-            response = universal_framework.call_gemini_api(prompt, temperature=0.3)
+            response = universal_framework.call_openai_api(
+                prompt, 
+                model="gpt-4.1-2025-04-14"
+            )
             
             if not response or response.startswith("Error:"):
                 return []
             
             # Parse URLs from response
             urls = []
-            for line in response.split('\\n'):
+            for line in response.split('\n'):
                 line = line.strip()
                 if line.startswith('http') and self._is_valid_page_url(line):
                     urls.append(line)
@@ -334,7 +345,7 @@ class AutomatedWebsiteExtractor(WorkflowStep):
             return urls[:15]  # Limit to 15 suggestions
             
         except Exception as e:
-            print(f"    ⚠️ Gemini page discovery failed: {e}")
+            self.logger.warning("Gemini page discovery failed", error=str(e))
             return []
     
     def _is_valid_page_url(self, url):
@@ -353,6 +364,19 @@ class AutomatedWebsiteExtractor(WorkflowStep):
             return False
         
         return True
+    
+    def _filter_sitemap_urls(self, urls):
+        """Exclude junk URLs before content extraction."""
+        bad_patterns = [
+            'blog', 'tag', 'category', 'news', 'article',
+            'resource', 'author', 'page', '?page=', '&p='
+        ]
+        filtered = []
+        for url in urls:
+            if any(pattern in url.lower() for pattern in bad_patterns):
+                continue
+            filtered.append(url)
+        return filtered
     
     def _save_sitemap(self, client_name, sitemap):
         """Save sitemap to file"""
@@ -376,7 +400,10 @@ class AutomatedWebsiteExtractor(WorkflowStep):
         all_content = {}
         
         for i, url in enumerate(sitemap[:20], 1):  # Limit to first 20 pages for performance
-            print(f"  📄 Extracting page {i}/{min(len(sitemap), 20)}: {url}")
+            self.logger.info("Extracting page", 
+                           page_number=i, 
+                           total_pages=min(len(sitemap), 20),
+                           url=url)
             
             try:
                 content = self._extract_content_from_url(url)
@@ -395,7 +422,7 @@ class AutomatedWebsiteExtractor(WorkflowStep):
                 time.sleep(0.5)
                 
             except Exception as e:
-                print(f"    ⚠️ Failed to extract {url}: {e}")
+                self.logger.warning("Failed to extract page", url=url, error=str(e))
         
         return all_content
     
@@ -430,7 +457,7 @@ class AutomatedWebsiteExtractor(WorkflowStep):
                 text = soup.get_text()
                 lines = (line.strip() for line in text.splitlines())
                 chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-                return '\\n'.join(chunk for chunk in chunks if chunk)
+                return '\n'.join(chunk for chunk in chunks if chunk)
             
         except Exception as e:
             return f"Error extracting {url}: {str(e)}"
@@ -458,49 +485,45 @@ class AutomatedWebsiteExtractor(WorkflowStep):
         """Step 4: Analyze all content with Gemini for comprehensive insights"""
         
         # Build comprehensive content input
-        content_summary = f"=== COMPREHENSIVE WEBSITE ANALYSIS FOR {client_name} ===\\n\\n"
-        content_summary += f"Website: {website_url}\\n"
-        content_summary += f"Total Pages Analyzed: {len(all_content)}\\n\\n"
+        content_summary = f"=== COMPREHENSIVE WEBSITE ANALYSIS FOR {client_name} ===\n\n"
+        content_summary += f"Website: {website_url}\n"
+        content_summary += f"Total Pages Analyzed: {len(all_content)}\n\n"
         
         for url, data in all_content.items():
             page_name = url.split('/')[-1] or 'homepage'
-            content_summary += f"=== PAGE: {page_name.upper()} ({url}) ===\\n"
-            content_summary += f"{data['content'][:1500]}\\n\\n"  # First 1500 chars per page
+            content_summary += f"=== PAGE: {page_name.upper()} ({url}) ===\n"
+            content_summary += f"{data['content']}\n\n"  # First 1500 chars per page
         
         # Get analysis prompt from separated prompt file 
         prompt = get_comprehensive_analysis_prompt(client_name, website_url, content_summary)
         
-        # Call Gemini for analysis
-        response = universal_framework.call_gemini_api(prompt, temperature=0.1)
+        # Call OpenAI for analysis
+        response = universal_framework.call_openai_api(
+            prompt, 
+            model="gpt-4.1-2025-04-14"
+        )
         
-        print(f"  🧠 Gemini response (first 200 chars): {response[:200]}")
+        self.logger.debug("OpenAI response preview", response_preview=response[:200])
         
         if response.startswith("Error:"):
-            raise Exception(f"Gemini analysis failed: {response}")
+            raise Exception(f"OpenAI analysis failed: {response}")
         
         # Handle empty or invalid response
         if not response or not response.strip():
-            print("  ⚠️ Gemini returned empty response, using fallback analysis")
+            self.logger.warning("OpenAI returned empty response, using fallback analysis")
             return self._create_fallback_analysis(client_name, website_url, all_content)
         
-        # Try to parse JSON response
-        try:
-            # Clean response - sometimes there's extra text before/after JSON
-            response = response.strip()
-            if response.startswith('```json'):
-                response = response.replace('```json', '').replace('```', '').strip()
-            elif response.startswith('```'):
-                response = response.replace('```', '').strip()
-            
-            return json.loads(response)
-        except json.JSONDecodeError as e:
-            print(f"  ⚠️ JSON parsing failed: {e}")
-            print(f"  ⚠️ Raw response: {response[:500]}")
+        # Try to parse JSON response using shared utility
+        success, parsed_result = safe_json_parse(response)
+        if success:
+            return parsed_result
+        else:
+            self.logger.warning("JSON parsing failed, using fallback analysis")
             return self._create_fallback_analysis(client_name, website_url, all_content)
     
     def _create_fallback_analysis(self, client_name, website_url, all_content):
         """Create basic fallback analysis when Gemini fails"""
-        print("  🔄 Creating fallback analysis...")
+        self.logger.info("Creating fallback analysis")
         
         # Extract basic info from content
         all_text = " ".join([data['content'] for data in all_content.values()])
@@ -524,7 +547,7 @@ class AutomatedWebsiteExtractor(WorkflowStep):
     def _update_notion_client(self, analysis_result):
         """Step 5: Update Notion client with complete analysis"""
         if not self.client_id or not self.db_manager:
-            print("⚠️ Skipping Notion update - running in offline mode")
+            self.logger.warning("Skipping Notion update - running in offline mode")
             return
         
         # Map analysis results to Notion AI Client Library fields (per schema.md)
@@ -553,25 +576,46 @@ class AutomatedWebsiteExtractor(WorkflowStep):
                 notion_data[key] = ""
         
         try:
-            self.db_manager.update_client_profile(self.client_id, notion_data)
-            print("✅ Notion client updated with comprehensive analysis")
+            print(f"\n=== NOTION UPDATE DEBUG ===")
+            print(f"Client ID: {self.client_id}")
+            print(f"Notion data type: {type(notion_data)}")
+            print(f"Notion data keys: {list(notion_data.keys())}")
+            print(f"Notion data values: {json.dumps(notion_data, indent=2)}")
+            
+            success = self.db_manager.update_client_profile(
+                self.client_id,
+                notion_data
+            )
+            
+            print(f"Update result: {success}")
+            
+            if success:
+                print("✓ Client profile updated in Notion")
+                self.logger.log_operation_success("update_notion_client", client_id=self.client_id)
+            else:
+                print("✗ Failed to update client profile")
+                self.logger.log_operation_failure("update_notion_client", "Update returned False")
+                
         except Exception as e:
-            print(f"⚠️ Failed to update Notion: {e}")
+            print(f"✗ Error updating Notion: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            self.logger.log_operation_failure("update_notion_client", str(e))
 
 def run_website_extractor():
     """
     MAIN EXECUTION FUNCTION
     For testing and standalone usage
     """
-    print("🚀 AUTOMATED WEBSITE EXTRACTOR")
-    print("=" * 40)
+    logger = get_logger("website_extractor_cli")
+    logger.info("Starting automated website extractor CLI")
     
     # Get user inputs
     client_name = input("Enter client name: ").strip()
     website_url = input("Enter website URL: ").strip()
     
     if not client_name or not website_url:
-        print("❌ Both client name and website URL are required")
+        logger.error("Both client name and website URL are required")
         return
     
     # Ensure URL has protocol
@@ -587,11 +631,11 @@ def run_website_extractor():
     result = extractor.execute(context)
     
     if result.success:
-        print("\\n🎉 Extraction completed successfully!")
-        if result.outputs:
-            print(f"📁 Results: {result.outputs}")
+        logger.log_operation_success("extraction_completed", 
+                                   client_name=client_name,
+                                   outputs=result.outputs)
     else:
-        print(f"\\n❌ Extraction failed: {result.error}")
+        logger.log_operation_failure("extraction_failed", result.error)
 
 if __name__ == "__main__":
     run_website_extractor()

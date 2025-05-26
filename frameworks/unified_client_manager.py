@@ -1,4 +1,5 @@
 """
+unified_client_manager 
 Unified Client Management System
 
 This module provides a centralized, consistent client selection interface
@@ -15,7 +16,8 @@ Key Features:
 
 import streamlit as st
 from typing import Optional, Tuple, Dict, Any
-from frameworks.research_tools_framework import NotionDatabaseManager
+from frameworks.database_manager import NotionDatabaseManager
+from frameworks.logging_manager import get_logger
 
 
 class UnifiedClientManager:
@@ -25,6 +27,7 @@ class UnifiedClientManager:
         self.tool_name = tool_name
         self.session_key = f"ucm_{tool_name}"
         self._db_manager = None
+        self.logger = get_logger(f"client_manager_{tool_name}")
     
     @property
     def db_manager(self) -> NotionDatabaseManager:
@@ -33,6 +36,7 @@ class UnifiedClientManager:
             try:
                 self._db_manager = NotionDatabaseManager()
             except Exception as e:
+                self.logger.error("Configuration required", error=str(e))
                 st.error(f"🔧 **Configuration Required**: {str(e)}")
                 st.error("Please configure your Notion API credentials.")
                 st.stop()
@@ -207,11 +211,13 @@ class UnifiedClientManager:
             session_state['client_profile'] = extracted_data or {}
             self.update_session_timestamp()
             
+            self.logger.log_operation_success("create_client", client_id=new_client_id, client_name=client_name)
             st.sidebar.success(f"✅ Created new client: {client_name}")
             
             return new_client_id, client_name, self._get_default_tool_status()
             
         except Exception as e:
+            self.logger.log_operation_failure("create_client", str(e), client_name=client_name)
             st.sidebar.error(f"Failed to create client: {str(e)}")
             return None, None, {}
     
@@ -242,6 +248,7 @@ class UnifiedClientManager:
                 return website_data  # Use partial data
                 
         except Exception as e:
+            self.logger.error("Website analysis failed", error=str(e), client_name=client_name, website_url=website_url)
             st.sidebar.error(f"Website analysis failed: {str(e)}")
             return None
     
@@ -255,8 +262,8 @@ class UnifiedClientManager:
             "Ideal_Target_Audience": extracted_data.get("ideal_target_audience", ""),
             "Brand_Values": self._format_list_field(extracted_data.get("brand_values", "")),
             "Brand_Mission": extracted_data.get("brand_mission", ""),
-            "Desired_Emotional_Impact": self._format_list_field(extracted_data.get("desired_emotional_impact", "")),
-            "Brand_Personality": self._format_list_field(extracted_data.get("brand_personality", "")),
+            "Desired_Emotional_Impact": extracted_data.get("desired_emotional_impact", ""),
+            "Brand_Personality": extracted_data.get("brand_personality", ""),
             "Words_Tones_To_Avoid": extracted_data.get("words_tones_to_avoid", ""),
             "Contact_Email": extracted_data.get("contact_email", ""),
             "Phone_Number": extracted_data.get("phone_number", ""),

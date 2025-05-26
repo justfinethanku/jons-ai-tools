@@ -1,58 +1,27 @@
-# frameworks/universal_framework.py
+"""
+frameworks/universal_framework 
+"""
 import streamlit as st
 import io
 import os
 import json
 import traceback
-import logging
-from typing import Dict, Any, Optional, Union
-# NotionDatabaseManager import removed - using unified_client_manager instead
-# Utilities (moved from shared_utilities.py)
-import json
-import re
-from typing import Dict, Any, Tuple, Optional
+from typing import Dict, Any, Optional, Union, Tuple
+from frameworks.shared_utils import safe_json_parse, sanitize_text_for_notion
+from frameworks.logging_manager import get_logger
 
-def safe_json_parse(json_string: str, fallback: Optional[Dict] = None) -> Tuple[bool, Dict[str, Any]]:
-    """Safely parse JSON string with fallback handling."""
-    if fallback is None:
-        fallback = {}
-    
-    try:
-        # Basic JSON cleaning
-        cleaned = json_string.strip()
-        if cleaned.startswith('```json'):
-            cleaned = cleaned.replace('```json', '').replace('```', '').strip()
-        parsed = json.loads(cleaned)
-        return True, parsed
-    except (json.JSONDecodeError, Exception) as e:
-        print(f"⚠️ JSON parsing failed: {str(e)}")
-        return False, fallback
-
-def sanitize_text_for_notion(text: str, max_length: int = 2000) -> str:
-    """Sanitize text for Notion rich text fields."""
-    if not text:
-        return ""
-    
-    # Remove any problematic characters
-    sanitized = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '', str(text))
-    
-    # Truncate if too long
-    if len(sanitized) > max_length:
-        sanitized = sanitized[:max_length-3] + "..."
-    
-    return sanitized
-
-# Configure logging for better error tracking
-logging.basicConfig(level=logging.WARNING)
+# Create structured logger
+logger = get_logger("universal_framework")
 
 st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
 
 # Client selection is now handled by unified_client_manager
 
 def client_selection_sidebar():
-    """Add client selection to sidebar using unified client manager"""
-    from frameworks.unified_client_manager import client_selection_sidebar as unified_selector
-    return unified_selector("universal")
+    """Wrapper for backward compatibility"""
+    from frameworks.unified_client_manager import get_unified_client_manager
+    manager = get_unified_client_manager("universal")
+    return manager.client_selector_sidebar(allow_new_client=False)
 
 def enhance_prompt_with_client_context(prompt_template: str, client_data: Optional[Dict[str, Any]]) -> str:
     """Enhance a prompt template with client-specific context.
@@ -103,7 +72,7 @@ def enhance_prompt_with_client_context(prompt_template: str, client_data: Option
     
         return enhanced_prompt
     except Exception as e:
-        logging.error(f"Error enhancing prompt with client context: {str(e)}")
+        logger.error("Failed to enhance prompt", error=str(e), client_id=client_data.get('id') if client_data else None)
         st.warning(f"⚠️ Could not apply client context: {str(e)}")
         return prompt_template
 
@@ -129,7 +98,7 @@ def outputs_to_txt_bytes(outputs_dict: Dict[str, str]) -> bytes:
             output.write(f"{safe_content}\n\n")
         return output.getvalue().encode("utf-8")
     except Exception as e:
-        logging.error(f"Error converting outputs to bytes: {str(e)}")
+        logger.error("Failed to convert outputs to bytes", error=str(e))
         error_msg = f"Error generating output file: {str(e)}\n"
         return error_msg.encode("utf-8")
 
@@ -160,20 +129,21 @@ def universal_ui():
     # Add client selection to all tools
     client_selection_sidebar()
 
-def call_openai_api(prompt: str, model: str = "gpt-4", temperature: float = 0.2) -> str:
+def call_openai_api(prompt: str, model: str = "o4-mini-2025-04-16", temperature: float = 1.0) -> str:
     """
     Call the OpenAI API with comprehensive error handling.
     
     Args:
         prompt: The prompt to send to OpenAI
-        model: The model to use. Defaults to "gpt-4".
-        temperature: Controls randomness in generation. Defaults to 0.2.
+        model: The model to use. Defaults to "o4-mini-2025-04-16".
+        temperature: Controls randomness in generation. Defaults to 1.0.
         
     Returns:
         The response from OpenAI or error message
     """
     try:
-        import openai
+        from openai import OpenAI
+        import time
         
         # Validate inputs
         if not prompt or not prompt.strip():
@@ -184,10 +154,10 @@ def call_openai_api(prompt: str, model: str = "gpt-4", temperature: float = 0.2)
         
         # Configure the client with error handling
         try:
-            api_key = st.secrets["openai"]["API_KEY"]
+            api_key = st.secrets["openai"]["OPENAI_API_KEY"]
             if not api_key:
                 raise ValueError("OpenAI API key not found in secrets")
-            openai.api_key = api_key
+            client = OpenAI(api_key=api_key)
         except KeyError:
             raise ValueError("OpenAI configuration not found in secrets.toml")
         
@@ -195,43 +165,55 @@ def call_openai_api(prompt: str, model: str = "gpt-4", temperature: float = 0.2)
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                response = openai.ChatCompletion.create(
-                    model=model,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=temperature,
-                )
+                start_time = time.time()
+                
+                # Build parameters
+                params = {
+                    "model": model,
+                    "messages": [{"role": "user", "content": prompt}]
+                }
+                
+                # Only add temperature if it's not the default
+                if temperature != 1.0:
+                    params["temperature"] = temperature
+                
+                response = client.chat.completions.create(**params)
+                
+                duration_ms = (time.time() - start_time) * 1000
                 
                 # Validate response
                 if not response.choices or not response.choices[0].message.content:
                     raise ValueError("Empty response from OpenAI")
                 
+                logger.log_api_call("openai", model, status_code=200, duration_ms=duration_ms)
                 return response.choices[0].message.content
                 
-            except openai.error.RateLimitError:
-                if attempt < max_retries - 1:
-                    import time
-                    time.sleep(2 ** attempt)  # Exponential backoff
+            except Exception as e:
+                if "rate_limit" in str(e).lower():
+                    if attempt < max_retries - 1:
+                        time.sleep(2 ** attempt)  # Exponential backoff 
+                        continue
+                    raise
+                elif attempt < max_retries - 1:
+                    logger.error("OpenAI API error", attempt=attempt + 1, error=str(e), model=model)
+                    time.sleep(1)  # Brief pause before retry 
                     continue
-                raise
-            except openai.error.APIError as e:
-                logging.error(f"OpenAI API error on attempt {attempt + 1}: {str(e)}")
-                if attempt < max_retries - 1:
-                    continue
-                raise
+                else:
+                    raise
     
     except Exception as e:
         error_msg = f"OpenAI API error: {str(e)}"
-        logging.error(error_msg)
+        logger.log_api_call("openai", model, status_code=500, error=str(e))
         st.error(error_msg)
         return f"Error: Unable to get response from OpenAI. Please try again."
 
 def call_gemini_api(prompt: str, response_schema: Optional[Dict] = None, temperature: float = 0.2) -> str:
     """
-    Call Gemini API with comprehensive error handling and structured output support.
+    Call Gemini API with comprehensive error handling and structured output support.   
     
     Args:
         prompt: The prompt to send to Gemini
-        response_schema: Schema for structured output
+        response_schema: Schema for structured output  
         temperature: Controls randomness in generation
         
     Returns:
@@ -274,7 +256,7 @@ def call_gemini_api(prompt: str, response_schema: Optional[Dict] = None, tempera
         # Create the model with error handling
         try:
             model = genai.GenerativeModel(
-                model_name="gemini-2.5-flash-preview-05-20",
+                model_name="gemini-2.5-pro-preview-05-06",
                 generation_config=generation_config
             )
         except Exception as e:
@@ -284,11 +266,18 @@ def call_gemini_api(prompt: str, response_schema: Optional[Dict] = None, tempera
         max_retries = 3
         for attempt in range(max_retries):
             try:
+                import time
+                start_time = time.time()
+                
                 response = model.generate_content(prompt)
+                
+                duration_ms = (time.time() - start_time) * 1000
                 
                 # Validate response
                 if not response or not hasattr(response, 'text'):
                     raise ValueError("Empty or invalid response from Gemini")
+                
+                logger.log_api_call("gemini", "gemini-2.5-pro-preview-05-06", status_code=200, duration_ms=duration_ms)
                 
                 # Handle structured response
                 if response_schema and hasattr(response, 'candidates') and response.candidates:
@@ -304,7 +293,7 @@ def call_gemini_api(prompt: str, response_schema: Optional[Dict] = None, tempera
                         else:
                             return response.text
                     except Exception as e:
-                        logging.warning(f"Error parsing structured response: {str(e)}")
+                        logger.warning("Error parsing structured response", error=str(e))
                         return response.text
                 else:
                     # Return unstructured response
@@ -317,13 +306,13 @@ def call_gemini_api(prompt: str, response_schema: Optional[Dict] = None, tempera
                     continue
                 raise
             except exceptions.GoogleAPIError as e:
-                logging.error(f"Gemini API error on attempt {attempt + 1}: {str(e)}")
+                logger.error("Gemini API error", attempt=attempt + 1, error=str(e), model="gemini-2.0-flash")
                 if attempt < max_retries - 1:
                     continue
                 raise
     
     except Exception as e:
         error_msg = f"Gemini API error: {str(e)}"
-        logging.error(error_msg)
+        logger.log_api_call("gemini", "gemini-2.0-flash", status_code=500, error=str(e))
         st.error(error_msg)
         return f"Error: Unable to get response from Gemini. Please try again."

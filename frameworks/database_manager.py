@@ -1,22 +1,23 @@
 """
+database_manager
+
 Enhanced Database Manager with proper error handling, transactions, and validation.
 Provides robust database operations for Brand Builder workflow.
 """
 import json
 import time
 from datetime import datetime
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Any
 from notion_client import Client, APIResponseError
 try:
     from notion_client import RequestTimeoutError
 except ImportError:
     # For older versions of notion-client that don't have RequestTimeoutError
     RequestTimeoutError = TimeoutError
-import logging
+from frameworks.logging_manager import get_logger
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Get structured logger
+logger = get_logger("database_manager")
 
 class DatabaseError(Exception):
     """Custom exception for database operations"""
@@ -32,7 +33,9 @@ class DatabaseConnectionError(DatabaseError):
 
 class EnhancedDatabaseManager:
     """
-    Enhanced database manager with error handling, validation, and transactions.
+    DEPRECATED: Use NotionDatabaseManager instead.
+    This class is kept for backward compatibility only.
+    All features have been merged into NotionDatabaseManager.
     """
     
     def __init__(self, api_key: str, retry_attempts: int = 3, timeout: int = 30):
@@ -88,9 +91,9 @@ class EnhancedDatabaseManager:
         """Initialize Notion client with error handling"""
         try:
             self.notion = Client(auth=self.api_key, timeout_ms=self.timeout * 1000)
-            logger.info("✅ Notion client initialized successfully")
+            logger.log_operation_success("initialize_notion_client")
         except Exception as e:
-            logger.error(f"❌ Failed to initialize Notion client: {str(e)}")
+            logger.log_operation_failure("initialize_notion_client", str(e))
             raise DatabaseConnectionError(f"Failed to initialize Notion client: {str(e)}")
     
     def health_check(self) -> Dict[str, Any]:
@@ -121,7 +124,7 @@ class EnhancedDatabaseManager:
                 'response_time_ms': round(response_time, 2)
             })
             
-            logger.info(f"✅ Health check passed - Response time: {response_time:.2f}ms")
+            logger.log_api_call("notion", "users.me", status_code=200, duration_ms=round(response_time, 2))
             
         except Exception as e:
             health_status.update({
@@ -338,20 +341,18 @@ class EnhancedDatabaseManager:
             List of results
         """
         results = []
-        successful_operations = []
         
         try:
             for i, operation in enumerate(operations):
                 try:
                     result = self.save_with_validation(**operation)
                     results.append(result)
-                    successful_operations.append(i)
                     
                 except Exception as e:
                     logger.error(f"❌ Bulk operation {i} failed: {str(e)}")
                     
                     # Attempt to rollback successful operations (if supported)
-                    self._attempt_rollback(successful_operations, results)
+                    self._attempt_rollback(results)
                     
                     raise DatabaseError(f"Bulk save failed at operation {i}: {str(e)}")
             
@@ -362,7 +363,7 @@ class EnhancedDatabaseManager:
             logger.error(f"❌ Bulk save failed: {str(e)}")
             raise
     
-    def _attempt_rollback(self, successful_operations: List[int], results: List[Dict[str, Any]]):
+    def _attempt_rollback(self, results: List[Dict[str, Any]]):
         """
         Attempt to rollback successful operations.
         Note: Notion doesn't support true transactions, so this is best-effort cleanup.
@@ -416,8 +417,10 @@ class NotionDatabaseManager:
     Consolidates client management operations from research_tools_framework.
     """
     
-    def __init__(self, notion_api_key=None):
+    def __init__(self, notion_api_key=None, retry_attempts=3):
         """Initialize the Notion Database Manager"""
+        self.retry_attempts = retry_attempts
+        
         # Use the new secure database configuration system
         try:
             from database_config import get_notion_client, get_database_ids
@@ -435,18 +438,26 @@ class NotionDatabaseManager:
         except ImportError:
             # Fallback if database_config not available
             if notion_api_key is None:
-                raise ValueError("Notion API key required when database_config not available")
+                import streamlit as st
+                notion_api_key = st.secrets.get("notion", {}).get("NOTION_API_KEY")
+                if not notion_api_key:
+                    raise ValueError("Notion API key required - add to .streamlit/secrets.toml")
+            
             self.notion = Client(auth=notion_api_key)
-            self.client_database_id = None
-            self.content_samples_database_id = None
-            self.voice_guidelines_database_id = None
+            
+            # Get database IDs from Streamlit secrets
+            import streamlit as st
+            self.client_database_id = st.secrets.get("notion", {}).get("NOTION_DATABASE_ID")
+            self.content_samples_database_id = st.secrets.get("notion", {}).get("Content_Samples_database_ID")
+            self.voice_guidelines_database_id = st.secrets.get("notion", {}).get("voice_guidelines_database_id")
     
     def get_client_list(self):
         """Get a list of all clients"""
         if not self.client_database_id:
             return {}
             
-        response = self.notion.databases.query(
+        response = self._retry_operation(
+            self.notion.databases.query,
             database_id=self.client_database_id,
             sorts=[{"property": "Name", "direction": "ascending"}]
         )
@@ -464,19 +475,28 @@ class NotionDatabaseManager:
         if not self.client_database_id:
             return None
             
+        print(f"DEBUG: Attempting to create client with database_id: {self.client_database_id}")
+        print(f"DEBUG: Client name: {client_name}, Industry: {industry}")
+        
         try:
-            response = self.notion.pages.create(
+            response = self._retry_operation(
+                self.notion.pages.create,
                 parent={"database_id": self.client_database_id},
                 properties={
                     "Name": {"title": [{"text": {"content": client_name}}]},
-                    "Industry": {"select": {"name": industry}},
-                    "Research_Status": {"select": {"name": "In Progress"}},
-                    "Last_Updated": {"date": {"start": self._get_current_date()}}
+                    "Industry": {"rich_text": [{"text": {"content": industry}}]},
+                    "Research_Status": {"select": {"name": "In Progress"}}
                 }
             )
+            print(f"DEBUG: Successfully created client with ID: {response['id']}")
             return response["id"]
         except Exception as e:
+            print(f"DEBUG: Full error creating client: {type(e).__name__}: {str(e)}")
+            print(f"DEBUG: Database ID was: {self.client_database_id}")
+            print(f"DEBUG: Notion client exists: {self.notion is not None}")
             logger.error(f"Error creating new client: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return None
     
     def get_client_page_id(self, client_name):
@@ -484,7 +504,8 @@ class NotionDatabaseManager:
         if not self.client_database_id:
             return None
             
-        response = self.notion.databases.query(
+        response = self._retry_operation(
+            self.notion.databases.query,
             database_id=self.client_database_id,
             filter={"property": "Name", "title": {"equals": client_name}}
         )
@@ -499,7 +520,10 @@ class NotionDatabaseManager:
             return {}
             
         try:
-            page = self.notion.pages.retrieve(page_id=client_page_id)
+            page = self._retry_operation(
+                self.notion.pages.retrieve,
+                page_id=client_page_id
+            )
             profile = {"id": client_page_id}
             props = page.get("properties", {})
             
@@ -512,9 +536,10 @@ class NotionDatabaseManager:
             
             # Rich text properties
             rich_text_props = [
-                "Product_Service_Description", "Current_Target_Audience", "Ideal_Target_Audience",
-                "Brand_Mission", "Words_Tones_To_Avoid", "Website", "Contact_Email", "Phone_Number",
-                "Address", "LinkedIn_URL", "Twitter_URL", "Facebook_URL", "Instagram_URL", "Other_Social_Media"
+                "Product_Service_Description", "Target_Audience", "Ideal_Target_Audience",
+                "Brand_Mission", "Website", "Contact_Email", "Phone_Number",
+                "Location", "LinkedIn_URL", "Twitter_URL", "Facebook_URL", "Instagram_URL", "Other_Social_Media",
+                "Brand_Values"
             ]
             
             for prop in rich_text_props:
@@ -522,7 +547,7 @@ class NotionDatabaseManager:
                     profile[prop] = props[prop]["rich_text"][0]["text"]["content"]
             
             # Multi-select properties
-            multi_select_props = ["Brand_Values", "Desired_Emotional_Impact", "Brand_Personality"]
+            multi_select_props = ["Desired_Emotional_Impact", "Brand_Personality"]
             for prop in multi_select_props:
                 if prop in props and props[prop].get("multi_select"):
                     profile[prop] = [item["name"] for item in props[prop]["multi_select"]]
@@ -540,36 +565,73 @@ class NotionDatabaseManager:
     
     def update_client_profile(self, client_page_id, profile_data):
         """Update a client's profile with research data"""
-        properties = {
-            "Research_Status": {"select": {"name": "In Progress"}},
-            "Last_Updated": {"date": {"start": self._get_current_date()}}
-        }
-        
-        # Rich text fields
-        rich_text_fields = [
-            "Product_Service_Description", "Current_Target_Audience", "Ideal_Target_Audience", 
-            "Brand_Mission", "Words_Tones_To_Avoid", "Website", "Contact_Email", "Phone_Number",
-            "Address", "LinkedIn_URL", "Twitter_URL", "Facebook_URL", "Instagram_URL", "Other_Social_Media"
-        ]
-        
-        for field in rich_text_fields:
-            if field in profile_data and profile_data[field]:
-                properties[field] = {"rich_text": [{"text": {"content": profile_data[field]}}]}
-        
-        # Multi-select fields
-        multi_select_fields = ["Brand_Values", "Desired_Emotional_Impact", "Brand_Personality"]
-        for field in multi_select_fields:
-            if field in profile_data and profile_data[field]:
-                if isinstance(profile_data[field], str):
-                    values = [v.strip() for v in profile_data[field].split(",")]
-                else:
-                    values = profile_data[field]
-                properties[field] = {"multi_select": [{"name": value} for value in values]}
-        
         try:
-            self.notion.pages.update(page_id=client_page_id, properties=properties)
+            print(f"\n=== DB MANAGER UPDATE DEBUG ===")
+            print(f"Page ID: {client_page_id}")
+            print(f"Updates received: {json.dumps(profile_data, indent=2)}")
+            
+            properties = {
+                "Research_Status": {"select": {"name": "In Progress"}}
+            }
+            
+            # Rich text fields
+            rich_text_fields = [
+                "Product_Service_Description", "Ideal_Target_Audience", 
+                "Brand_Mission", "Contact_Email", "Phone_Number",
+                "Location", "LinkedIn_URL", "Twitter_URL", "Facebook_URL", "Instagram_URL", "Other_Social_Media",
+                "Desired_Emotional_Impact", "Brand_Personality"
+            ]
+            
+            for field in rich_text_fields:
+                if field in profile_data and profile_data[field]:
+                    properties[field] = {"rich_text": [{"text": {"content": str(profile_data[field])}}]}
+            
+            # Special handling for fields that need conversion
+            if "Target_Audience" in profile_data:
+                value = profile_data["Target_Audience"]
+                if value:
+                    # Convert dict/list to JSON string
+                    if isinstance(value, (dict, list)):
+                        properties["Target_Audience"] = {"rich_text": [{"text": {"content": json.dumps(value)}}]}
+                    else:
+                        properties["Target_Audience"] = {"rich_text": [{"text": {"content": str(value)}}]}
+            
+            if "Brand_Values" in profile_data:
+                value = profile_data["Brand_Values"]
+                if value:
+                    # Convert list to JSON string
+                    if isinstance(value, list):
+                        properties["Brand_Values"] = {"rich_text": [{"text": {"content": json.dumps(value)}}]}
+                    else:
+                        properties["Brand_Values"] = {"rich_text": [{"text": {"content": str(value)}}]}
+            
+            # Website field is URL type
+            if "Website" in profile_data and profile_data["Website"]:
+                properties["Website"] = {"url": str(profile_data["Website"])}
+            
+            # Multi-select fields
+            multi_select_fields = []
+            for field in multi_select_fields:
+                if field in profile_data and profile_data[field]:
+                    if isinstance(profile_data[field], str):
+                        values = [v.strip() for v in profile_data[field].split(",")]
+                    else:
+                        values = profile_data[field]
+                    properties[field] = {"multi_select": [{"name": value} for value in values]}
+            
+            print(f"\nFinal properties object: {json.dumps(properties, indent=2)}")
+            
+            response = self._retry_operation(
+                self.notion.pages.update,
+                page_id=client_page_id,
+                properties=properties
+            )
+            print(f"Notion API response: Success")
             return True
         except Exception as e:
+            print(f"Notion API error: {str(e)}")
+            import traceback
+            traceback.print_exc()
             logger.error(f"Error updating client profile: {str(e)}")
             return False
     
@@ -583,7 +645,10 @@ class NotionDatabaseManager:
             }
             
         try:
-            page = self.notion.pages.retrieve(page_id=client_page_id)
+            page = self._retry_operation(
+                self.notion.pages.retrieve,
+                page_id=client_page_id
+            )
             props = page.get("properties", {})
             status = {
                 "brand_builder": False, "content_collector": False, "voice_auditor": False,
@@ -631,15 +696,50 @@ class NotionDatabaseManager:
         if tool_name in property_map:
             try:
                 properties_to_update = {
-                    "Last_Tool_Completed": {"rich_text": [{"text": {"content": tool_name}}]},
-                    "Last_Updated": {"date": {"start": self._get_current_date()}}
+                    "Last_Tool_Completed": {"rich_text": [{"text": {"content": tool_name}}]}
                 }
                 
-                self.notion.pages.update(page_id=client_page_id, properties=properties_to_update)
+                self._retry_operation(
+                    self.notion.pages.update,
+                    page_id=client_page_id,
+                    properties=properties_to_update
+                )
                 return True
             except Exception:
                 return False
         return False
+    
+    def update_tool_completion(self, client_page_id: str, tool_name: str, completed: bool = True):
+        """Update tool completion checkbox using new schema fields"""
+        field_map = {
+            "brand_builder": "Brand_Builder_Complete",
+            "content_collector": "Content_Collector_Complete",
+            "voice_auditor": "Voice_Auditor_Complete",
+            "audience_definer": "Audience_Definer_Complete",
+            "voice_traits_builder": "Voice_Traits_Builder_Complete",
+            "gap_analyzer": "Gap_Analyzer_Complete",
+            "content_rewriter": "Content_Rewriter_Complete",
+            "guidelines_finalizer": "Guidelines_Finalizer_Complete"
+        }
+        
+        if tool_name not in field_map:
+            return False
+            
+        try:
+            properties = {
+                field_map[tool_name]: self.format_checkbox(completed),
+                "Last_Tool_Completed": self.format_rich_text(tool_name)
+            }
+            
+            self._retry_operation(
+                self.notion.pages.update,
+                page_id=client_page_id,
+                properties=properties
+            )
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update tool completion: {str(e)}")
+            return False
     
     def get_deep_research_data(self, client_page_id):
         """Get deep research workflow data for a client"""
@@ -667,8 +767,7 @@ class NotionDatabaseManager:
             
             workflow_json = json.dumps(current_workflow)
             success = self.update_client_profile(client_page_id, {
-                "Deep_Research_Workflow": workflow_json,
-                "Last_Updated": self._get_current_date()
+                "Deep_Research_Workflow": workflow_json
             })
             
             return success
@@ -681,233 +780,73 @@ class NotionDatabaseManager:
         workflow_data = self.get_deep_research_data(client_page_id)
         return step_name in workflow_data and workflow_data[step_name].get("status") == "completed"
     
+    def _retry_operation(self, operation, *args, **kwargs):
+        """
+        Retry database operations with exponential backoff.
+        
+        Args:
+            operation: Function to retry
+            *args, **kwargs: Arguments for the operation
+            
+        Returns:
+            Operation result
+            
+        Raises:
+            DatabaseError: If all retry attempts fail
+        """
+        last_exception = None
+        
+        for attempt in range(self.retry_attempts):
+            try:
+                return operation(*args, **kwargs)
+            
+            except (APIResponseError, RequestTimeoutError) as e:
+                last_exception = e
+                wait_time = (2 ** attempt) * 0.5  # Exponential backoff
+                
+                logger.warning(f"Database operation failed (attempt {attempt + 1}/{self.retry_attempts}): {str(e)}")
+                logger.info(f"Retrying in {wait_time} seconds...")
+                
+                if attempt < self.retry_attempts - 1:
+                    time.sleep(wait_time)
+                
+            except Exception as e:
+                # Non-retryable error
+                logger.error(f"Non-retryable database error: {str(e)}")
+                raise DatabaseError(f"Database operation failed: {str(e)}")
+        
+        # All retry attempts failed
+        logger.error(f"All retry attempts failed. Last error: {str(last_exception)}")
+        raise DatabaseError(f"Database operation failed after {self.retry_attempts} attempts: {str(last_exception)}")
+    
+    def format_rich_text(self, content: str) -> Dict[str, Any]:
+        """Helper to format rich text for Notion API"""
+        return {"rich_text": [{"text": {"content": content[:2000]}}]}  # Notion limit
+    
+    def format_title(self, content: str) -> Dict[str, Any]:
+        """Helper to format title for Notion API"""
+        return {"title": [{"text": {"content": content[:100]}}]}  # Reasonable limit
+    
+    def format_select(self, option: str) -> Dict[str, Any]:
+        """Helper to format select for Notion API"""
+        return {"select": {"name": option}}
+    
+    def format_relation(self, page_ids: List[str]) -> Dict[str, Any]:
+        """Helper to format relation for Notion API"""
+        return {"relation": [{"id": page_id} for page_id in page_ids]}
+    
+    def format_checkbox(self, checked: bool) -> Dict[str, Any]:
+        """Helper to format checkbox for Notion API"""
+        return {"checkbox": checked}
+    
+    def format_date(self, date_str: str = None) -> Dict[str, Any]:
+        """Helper to format date for Notion API"""
+        if date_str is None:
+            date_str = datetime.now().isoformat()
+        return {"date": {"start": date_str}}
+    
     def _get_current_date(self):
         """Get current date in ISO format"""
         return datetime.now().strftime("%Y-%m-%d")
 
 
-# Utility functions consolidated from research_tools_framework
-def format_list_for_display(items_list):
-    """Format a list for display (converts list to comma-separated string)"""
-    if not items_list:
-        return ""
-    
-    if isinstance(items_list, list):
-        return ", ".join(items_list)
-    
-    return str(items_list)
-
-
-def parse_markdown_table(markdown_table):
-    """Parse a markdown table into a list of dictionaries"""
-    import re
-    result = []
-    
-    # Split into lines
-    lines = markdown_table.strip().split('\n')
-    
-    # Find header row
-    header_row = None
-    for i, line in enumerate(lines):
-        if line.startswith('|') and i < len(lines) - 1 and re.match(r'^\|\s*[-:]+\s*\|', lines[i+1]):
-            header_row = line
-            break
-    
-    if not header_row:
-        return result
-    
-    # Extract headers
-    headers = [h.strip() for h in header_row.split('|')[1:-1]]
-    
-    # Process data rows
-    for line in lines:
-        # Skip header and separator rows
-        if line == header_row or re.match(r'^\|\s*[-:]+\s*\|', line):
-            continue
-        
-        # Extract cells
-        if line.startswith('|') and line.endswith('|'):
-            cells = [cell.strip() for cell in line.split('|')[1:-1]]
-            
-            # Skip if the number of cells doesn't match headers
-            if len(cells) != len(headers):
-                continue
-            
-            # Create a dictionary for this row
-            row_dict = {headers[i]: cells[i] for i in range(len(headers))}
-            result.append(row_dict)
-    
-    return result
-
-
-def client_selector_sidebar(db_manager=None, allow_new_client=False):
-    """Shared client selector sidebar component with option to create new client"""
-    import streamlit as st
-    
-    # Initialize database manager if not provided
-    if db_manager is None:
-        db_manager = NotionDatabaseManager()
-    
-    # Get client list
-    client_list = db_manager.get_client_list()
-    
-    # Create options for the dropdown
-    client_options = list(client_list.keys())
-    
-    # Add "Create New Client" option if allowed
-    if allow_new_client:
-        client_options = ["➕ Create New Client"] + client_options
-    
-    # Display a message if no clients and not allowing new clients
-    if not client_options and not allow_new_client:
-        st.sidebar.warning("No clients found in Notion database. Please add clients directly in Notion.")
-        return None, None, {}
-    
-    # Select client from dropdown
-    selected_client = st.sidebar.selectbox(
-        "Select Client",
-        options=client_options,
-        key="research_client_selector"
-    )
-    
-    # Handle new client creation
-    if selected_client == "➕ Create New Client":
-        with st.sidebar.form("new_client_form"):
-            st.subheader("Create New Client")
-            new_client_name = st.text_input("Client Name", key="new_client_name")
-            website_url = st.text_input("Website URL (optional)", key="new_client_website", 
-                                      help="Provide URL to auto-extract company information")
-            
-            create_button = st.form_submit_button("Create Client")
-            
-            if create_button and new_client_name:
-                # Create the new client
-                new_client_id = db_manager.create_new_client(new_client_name, "Other")
-                
-                if new_client_id:
-                    # Store in session state for continued use
-                    st.session_state.client_page_id = new_client_id
-                    st.session_state.client_name = new_client_name
-                    
-                    # Show success message and refresh
-                    st.sidebar.success(f"✅ Created new client: {new_client_name}")
-                    
-                    # Return the new client info
-                    return new_client_id, new_client_name, {
-                        "brand_builder": False,
-                        "content_collector": False,
-                        "voice_auditor": False,
-                        "audience_definer": False,
-                        "voice_traits_builder": False,
-                        "gap_analyzer": False,
-                        "content_rewriter": False,
-                        "guidelines_finalizer": False
-                    }
-                else:
-                    st.sidebar.error("Failed to create new client")
-        
-        # If we reach here, no client was created yet
-        return None, None, {}
-    
-    # Handle existing client selection
-    elif selected_client in client_list:
-        client_page_id = client_list[selected_client]
-        
-        # Store in session state
-        st.session_state.client_page_id = client_page_id
-        st.session_state.client_name = selected_client
-        
-        # Show tool completion status
-        try:
-            status = db_manager.get_tool_completion_status(client_page_id)
-            
-            st.sidebar.markdown("### Research Progress")
-            status_emojis = {True: "✅", False: "⬜"}
-            
-            tool_labels = [
-                ("brand_builder", "1. Brand Builder"),
-                ("content_collector", "2. Content Collector"),
-                ("voice_auditor", "3. Voice Auditor"),
-                ("audience_definer", "4. Audience Definer"),
-                ("voice_traits_builder", "5. Voice Traits Builder"),
-                ("gap_analyzer", "6. Gap Analyzer"),
-                ("content_rewriter", "7. Content Rewriter"),
-                ("guidelines_finalizer", "8. Guidelines Finalizer")
-            ]
-            
-            for key, label in tool_labels:
-                st.sidebar.markdown(f"{status_emojis[status.get(key, False)]} {label}")
-        
-        except Exception as e:
-            st.sidebar.warning("Could not retrieve tool status.")
-            status = {}
-        
-        return client_page_id, selected_client, status
-    else:
-        # No valid selection
-        st.sidebar.warning("Please select a client or create a new one.")
-        return None, None, {}
-
-
-def run_brand_builder():
-    """Streamlit UI for Brand Builder - Step 1 Only"""
-    import streamlit as st
-    
-    st.title("Brand Builder")
-    st.subheader("Start here")
-    
-    st.write("Enter the name and URL of client and the workflow will take it from here!")
-    
-    # Import step 1 components
-    from tools.brand_builder.step_01_website_extractor import AutomatedWebsiteExtractor, WorkflowContext
-    
-    # Input form
-    with st.form("website_extractor"):
-        client_name = st.text_input("Client Name", placeholder="Enter client name")
-        website_url = st.text_input("Website URL", placeholder="https://example.com")
-        
-        submitted = st.form_submit_button("🔍 Extract Website Data")
-        
-        if submitted:
-            if not client_name or not website_url:
-                st.error("Please provide both client name and website URL")
-            else:
-                # Ensure URL has protocol
-                if not website_url.startswith('http'):
-                    website_url = f"https://{website_url}"
-                
-                # Create context and run extraction
-                context = WorkflowContext()
-                context.set_input("client_name", client_name)
-                context.set_input("website_url", website_url)
-                
-                # Run the extraction
-                with st.spinner("🔍 Extracting website data..."):
-                    extractor = AutomatedWebsiteExtractor()
-                    result = extractor.execute(context)
-                
-                # Show results
-                if result.success:
-                    st.success("✅ Website extraction completed!")
-                    
-                    # Display results
-                    st.subheader("📊 Extraction Results")
-                    
-                    if result.data.get("analysis"):
-                        st.write("### Business Analysis")
-                        st.json(result.data["analysis"])
-                    
-                    if result.data.get("content_file"):
-                        st.write(f"📁 **Content File:** `{result.data['content_file']}`")
-                    
-                    if result.data.get("sitemap_file"):
-                        st.write(f"🗺️ **Sitemap File:** `{result.data['sitemap_file']}`")
-                    
-                    if result.data.get("client_id"):
-                        st.write(f"🗄️ **Notion Client ID:** `{result.data['client_id']}`")
-                    
-                    st.balloons()
-                else:
-                    st.error("❌ Extraction failed:")
-                    for error in result.errors:
-                        st.error(f"  • {error}")
