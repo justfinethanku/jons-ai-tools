@@ -129,13 +129,13 @@ def universal_ui():
     # Add client selection to all tools
     client_selection_sidebar()
 
-def call_openai_api(prompt: str, model: str = "o4-mini-2025-04-16", temperature: float = 1.0) -> str:
+def call_openai_api(prompt: str, model: str = "gpt-4.1-2025-04-14", temperature: float = 1.0) -> str:
     """
     Call the OpenAI API with comprehensive error handling.
     
     Args:
         prompt: The prompt to send to OpenAI
-        model: The model to use. Defaults to "o4-mini-2025-04-16".
+        model: The model to use. Defaults to "gpt-4.1-2025-04-14".
         temperature: Controls randomness in generation. Defaults to 1.0.
         
     Returns:

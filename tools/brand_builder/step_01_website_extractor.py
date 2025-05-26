@@ -163,6 +163,7 @@ class AutomatedWebsiteExtractor(WorkflowStep):
             
             # Step 6: Prepare for Step 2
             self.logger.info("Preparing for Step 2")
+            context.set_output("client_id", self.client_id)
             context.set_output("website_analysis", analysis_result)
             context.set_output("content_file", content_file)
             context.set_output("sitemap_file", sitemap_file)
@@ -170,6 +171,15 @@ class AutomatedWebsiteExtractor(WorkflowStep):
             self.logger.log_operation_success("website_extraction_pipeline",
                                             client_name=client_name,
                                             client_id=self.client_id)
+            
+            # Handoff to Step 2: Brand Analyzer
+            if self.client_id:
+                self.logger.info("Handing off to Step 2: Brand Analyzer")
+                from .step_02_brand_analyzer import BrandAnalyzer
+                step2 = BrandAnalyzer()
+                step2_result = step2.execute(context)
+                if not step2_result.success:
+                    self.logger.error(f"Step 2 failed: {step2_result.errors}")
             
             return StepResult(
                 success=True,
@@ -526,13 +536,13 @@ class AutomatedWebsiteExtractor(WorkflowStep):
         self.logger.info("Creating fallback analysis")
         
         # Extract basic info from content
-        all_text = " ".join([data['content'] for data in all_content.values()])
+        # all_text = " ".join([data['content'] for data in all_content.values()])
         
         schema = get_analysis_schema()
         fallback_result = {}
         
         # Populate with basic extracted data or "Not found"
-        for key, description in schema.items():
+        for key, _ in schema.items():
             if key == "company_description":
                 fallback_result[key] = f"{client_name} - analysis extracted from {website_url}"
             elif key == "key_products_services":
@@ -544,53 +554,185 @@ class AutomatedWebsiteExtractor(WorkflowStep):
         
         return fallback_result
     
+    def _format_for_notion(self, value):
+        """Helper function to convert complex data types to strings for Notion"""
+        if value == "Not found" or value is None:
+            return ""
+        
+        # Handle lists of dictionaries
+        if isinstance(value, list):
+            if not value:
+                return ""
+            
+            # Check if it's a list of dicts (like brand_values or key_products_services)
+            if all(isinstance(item, dict) for item in value):
+                formatted_items = []
+                for item in value:
+                    if 'value_name' in item and 'description' in item:
+                        # Brand values format
+                        formatted_items.append(f"• {item['value_name']}: {item['description']}")
+                    elif 'service_name' in item and 'description' in item:
+                        # Services format
+                        formatted_items.append(f"• {item['service_name']}: {item['description']}")
+                    elif 'platform_name' in item and 'url' in item:
+                        # Social media format
+                        formatted_items.append(f"• {item['platform_name']}: {item['url']}")
+                    else:
+                        # Generic dict format
+                        formatted_items.append(f"• {json.dumps(item)}")
+                return "\n".join(formatted_items)
+            else:
+                # Simple list of strings
+                return ", ".join(str(item) for item in value)
+        
+        # Handle dictionaries
+        elif isinstance(value, dict):
+            formatted_parts = []
+            
+            # Special handling for target_audience
+            if 'primary' in value or 'secondary' in value:
+                if value.get('primary'):
+                    formatted_parts.append(f"Primary: {value['primary']}")
+                if value.get('secondary'):
+                    formatted_parts.append(f"Secondary: {value['secondary']}")
+                if value.get('pain_points_addressed'):
+                    pain_points = ", ".join(value['pain_points_addressed'])
+                    formatted_parts.append(f"Pain Points: {pain_points}")
+                return "\n".join(formatted_parts)
+            
+            # Special handling for company_size_indicators
+            elif 'employee_count' in value or 'office_locations' in value:
+                if value.get('employee_count'):
+                    formatted_parts.append(f"Employees: {value['employee_count']}")
+                if value.get('office_locations'):
+                    locations = ", ".join(value['office_locations']) if isinstance(value['office_locations'], list) else value['office_locations']
+                    formatted_parts.append(f"Locations: {locations}")
+                if value.get('years_in_business'):
+                    formatted_parts.append(f"Years in Business: {value['years_in_business']}")
+                return "\n".join(formatted_parts)
+            
+            # Special handling for key_messaging_themes
+            elif 'tagline_slogan' in value or 'recurring_phrases_keywords' in value:
+                if value.get('tagline_slogan'):
+                    formatted_parts.append(f"Tagline: {value['tagline_slogan']}")
+                if value.get('recurring_phrases_keywords'):
+                    keywords = ", ".join(value['recurring_phrases_keywords']) if isinstance(value['recurring_phrases_keywords'], list) else value['recurring_phrases_keywords']
+                    formatted_parts.append(f"Keywords: {keywords}")
+                if value.get('unique_terminology_or_brand_names'):
+                    terms = ", ".join(value['unique_terminology_or_brand_names']) if isinstance(value['unique_terminology_or_brand_names'], list) else value['unique_terminology_or_brand_names']
+                    formatted_parts.append(f"Unique Terms: {terms}")
+                return "\n".join(formatted_parts)
+            
+            # Special handling for communication_style
+            elif 'formality_level' in value or 'technical_level' in value:
+                if value.get('formality_level'):
+                    formatted_parts.append(f"Formality: {value['formality_level']}")
+                if value.get('technical_level'):
+                    formatted_parts.append(f"Technical Level: {value['technical_level']}")
+                if value.get('overall_tone'):
+                    tones = ", ".join(value['overall_tone']) if isinstance(value['overall_tone'], list) else value['overall_tone']
+                    formatted_parts.append(f"Tone: {tones}")
+                return "\n".join(formatted_parts)
+            
+            # Generic dict handling
+            else:
+                for k, v in value.items():
+                    if isinstance(v, list):
+                        v = ", ".join(str(item) for item in v)
+                    formatted_parts.append(f"{k}: {v}")
+                return "\n".join(formatted_parts)
+        
+        # Return as string for simple types
+        else:
+            return str(value)
+    
     def _update_notion_client(self, analysis_result):
         """Step 5: Update Notion client with complete analysis"""
         if not self.client_id or not self.db_manager:
             self.logger.warning("Skipping Notion update - running in offline mode")
             return
         
-        # Map analysis results to Notion AI Client Library fields (per schema.md)
+        # Map analysis results to Notion AI Client Library fields with proper formatting
         notion_data = {
-            "Industry": analysis_result.get("industry", "Other"),
-            "Company_Description": analysis_result.get("company_description", ""),
-            "Brand_Mission": analysis_result.get("brand_mission", ""),
-            "Brand_Values": analysis_result.get("brand_values", ""),
-            "Value_Proposition": analysis_result.get("value_proposition", ""),
-            "Target_Audience": analysis_result.get("target_audience", ""),
-            "Contact_Email": analysis_result.get("contact_email", ""),
-            "Phone_Number": analysis_result.get("phone_number", ""),
-            "Location": analysis_result.get("address", ""),
-            # Social media URLs (as per schema)
-            "LinkedIn_URL": analysis_result.get("linkedin_url", ""),
-            "Twitter_URL": analysis_result.get("twitter_url", ""),
-            "Facebook_URL": analysis_result.get("facebook_url", ""),
-            "Instagram_URL": analysis_result.get("instagram_url", ""),
+            # Basic Information
+            "Industry": self._format_for_notion(analysis_result.get("industry", "Other")),
+            "Company_Description": self._format_for_notion(analysis_result.get("company_description", "")),
+            
+            # Brand Identity  
+            "Brand_Mission": self._format_for_notion(analysis_result.get("brand_mission", "")),
+            "Brand_Values": self._format_for_notion(analysis_result.get("brand_values", [])),
+            "Value_Proposition": self._format_for_notion(analysis_result.get("value_proposition", "")),
+            "Brand_Personality": self._format_for_notion(analysis_result.get("brand_personality_traits", [])),
+            
+            # Products/Services
+            "Product_Service_Description": self._format_for_notion(analysis_result.get("key_products_services", [])),
+            
+            # Target Audience
+            "Target_Audience": self._format_for_notion(analysis_result.get("target_audience", {})),
+            
+            # Communication
+            "Communication_Tone": self._format_for_notion(analysis_result.get("communication_style", {})),
+            "Desired_Emotional_Impact": self._format_for_notion(
+                analysis_result.get("communication_style", {}).get("overall_tone", [])
+            ),
+            
+            # Contact Information
+            "Contact_Email": self._format_for_notion(analysis_result.get("contact_email", "")),
+            "Phone_Number": self._format_for_notion(analysis_result.get("phone_number", "")),
+            "Location": self._format_for_notion(analysis_result.get("address", "")),
+            
+            # Social Media
+            "LinkedIn_URL": self._format_for_notion(analysis_result.get("linkedin_url", "")),
+            "Twitter_URL": self._format_for_notion(analysis_result.get("twitter_url", "")),
+            "Facebook_URL": self._format_for_notion(analysis_result.get("facebook_url", "")),
+            "Instagram_URL": self._format_for_notion(analysis_result.get("instagram_url", "")),
+            "Other_Social_Media": self._format_for_notion(analysis_result.get("other_social_media", [])),
+            
+            # Company Details
+            "Company_Size": self._format_for_notion(
+                analysis_result.get("company_size_indicators", {}).get("employee_count", "")
+            ),
+            
             # Status tracking
+            "Research_Status": "Website Data Extracted",
             "Last_Updated": datetime.now().strftime("%Y-%m-%d")
         }
         
-        # Clean up "Not found" values
-        for key, value in notion_data.items():
-            if value == "Not found":
-                notion_data[key] = ""
+        # Add additional fields from analysis that might be useful
+        if analysis_result.get("youtube_url"):
+            notion_data["Other_Social_Media"] += f"\n• YouTube: {analysis_result['youtube_url']}"
+        
+        if analysis_result.get("key_messaging_themes"):
+            # Store in Deep_Research_Workflow as JSON for later use
+            notion_data["Deep_Research_Workflow"] = json.dumps({
+                "website_extraction": {
+                    "key_messaging_themes": analysis_result.get("key_messaging_themes", {}),
+                    "awards_recognition": analysis_result.get("awards_recognition_affiliations", []),
+                    "testimonial_themes": analysis_result.get("testimonial_themes_or_keywords", []),
+                    "differentiators": analysis_result.get("key_differentiators_claimed", []),
+                    "company_size_indicators": analysis_result.get("company_size_indicators", {}),
+                    "extraction_date": datetime.now().isoformat()
+                }
+            })
         
         try:
             print(f"\n=== NOTION UPDATE DEBUG ===")
             print(f"Client ID: {self.client_id}")
-            print(f"Notion data type: {type(notion_data)}")
+            print(f"Analysis result keys: {list(analysis_result.keys())}")
             print(f"Notion data keys: {list(notion_data.keys())}")
-            print(f"Notion data values: {json.dumps(notion_data, indent=2)}")
+            print(f"\n=== FORMATTED NOTION DATA ===")
+            for key, value in notion_data.items():
+                print(f"{key}: {value[:100]}..." if len(str(value)) > 100 else f"{key}: {value}")
             
             success = self.db_manager.update_client_profile(
                 self.client_id,
                 notion_data
             )
             
-            print(f"Update result: {success}")
+            print(f"\nUpdate result: {success}")
             
             if success:
-                print("✓ Client profile updated in Notion")
+                print("✓ Client profile updated in Notion with all extracted data")
                 self.logger.log_operation_success("update_notion_client", client_id=self.client_id)
             else:
                 print("✗ Failed to update client profile")

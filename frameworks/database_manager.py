@@ -570,56 +570,104 @@ class NotionDatabaseManager:
             print(f"Page ID: {client_page_id}")
             print(f"Updates received: {json.dumps(profile_data, indent=2)}")
             
-            properties = {
-                "Research_Status": {"select": {"name": "In Progress"}}
-            }
+            properties = {}
             
-            # Rich text fields
-            rich_text_fields = [
-                "Product_Service_Description", "Ideal_Target_Audience", 
-                "Brand_Mission", "Contact_Email", "Phone_Number",
-                "Location", "LinkedIn_URL", "Twitter_URL", "Facebook_URL", "Instagram_URL", "Other_Social_Media",
-                "Desired_Emotional_Impact", "Brand_Personality"
-            ]
-            
-            for field in rich_text_fields:
-                if field in profile_data and profile_data[field]:
-                    properties[field] = {"rich_text": [{"text": {"content": str(profile_data[field])}}]}
-            
-            # Special handling for fields that need conversion
-            if "Target_Audience" in profile_data:
-                value = profile_data["Target_Audience"]
-                if value:
-                    # Convert dict/list to JSON string
-                    if isinstance(value, (dict, list)):
-                        properties["Target_Audience"] = {"rich_text": [{"text": {"content": json.dumps(value)}}]}
+            # Process ALL fields dynamically instead of using hardcoded lists
+            for field, value in profile_data.items():
+                if value is None or value == "" or value == "Not found":
+                    continue
+                
+                # Special handling for specific field types based on Notion schema
+                if field == "Research_Status":
+                    # Select field
+                    properties[field] = {"select": {"name": str(value)}}
+                    
+                elif field == "Website":
+                    # URL field
+                    properties[field] = {"url": str(value)}
+                    
+               # elif field == "Company_Size":
+                    # Select field - ensure it matches Notion's select options
+                 #   if value and str(value).strip():
+                        # Map common values to Notion's expected options
+                     #   size_mapping = {
+                      #      "Solo entrepreneur": "1-10 employees",
+                       #     "1-5 employees": "1-10 employees",
+                       #     "6-10 employees": "1-10 employees",
+                        #    "Small": "11-50 employees",
+                        #    "Medium": "51-200 employees",
+                        #    "Large": "201-500 employees",
+                        #    "Enterprise": "501+ employees"
+                       # }
+                      #  mapped_value = size_mapping.get(str(value), str(value))
+                      #  properties[field] = {"select": {"name": mapped_value}}
+                        
+                elif field == "Last_Updated":
+                    # Date field
+                    properties[field] = {"date": {"start": str(value)}}
+                    
+                elif field == "Contact_Email":
+                    # Email field
+                    if "@" in str(value):  # Basic email validation
+                        properties[field] = {"email": str(value)}
                     else:
-                        properties["Target_Audience"] = {"rich_text": [{"text": {"content": str(value)}}]}
-            
-            if "Brand_Values" in profile_data:
-                value = profile_data["Brand_Values"]
-                if value:
-                    # Convert list to JSON string
+                        # If not a valid email, put in rich text
+                        properties[field] = {"rich_text": [{"text": {"content": str(value)[:2000]}}]}
+                        
+                elif field == "Phone_Number":
+                    # Phone field
+                    properties[field] = {"phone_number": str(value)}
+                    
+                elif field == "Deep_Research_Workflow":
+                    # This is JSON data, store as rich text
+                    content = str(value)[:2000]  # Notion limit
+                    properties[field] = {"rich_text": [{"text": {"content": content}}]}
+                    
+                elif field in ["Brand_Personality_Traits", "Voice_Characteristics"]:
+                    # Multi-select fields (if they exist in the schema)
                     if isinstance(value, list):
-                        properties["Brand_Values"] = {"rich_text": [{"text": {"content": json.dumps(value)}}]}
+                        # Only add if the field exists in Notion schema
+                        properties[field] = {"multi_select": [{"name": str(item)[:100]} for item in value[:10]]}  # Limit to 10 items
                     else:
-                        properties["Brand_Values"] = {"rich_text": [{"text": {"content": str(value)}}]}
-            
-            # Website field is URL type
-            if "Website" in profile_data and profile_data["Website"]:
-                properties["Website"] = {"url": str(profile_data["Website"])}
-            
-            # Multi-select fields
-            multi_select_fields = []
-            for field in multi_select_fields:
-                if field in profile_data and profile_data[field]:
-                    if isinstance(profile_data[field], str):
-                        values = [v.strip() for v in profile_data[field].split(",")]
+                        # If not a list, convert to rich text
+                        properties[field] = {"rich_text": [{"text": {"content": str(value)[:2000]}}]}
+                        
+                else:
+                    # Default: Everything else goes to rich_text
+                    # Handle different data types appropriately
+                    if isinstance(value, (dict, list)):
+                        # If it's already been formatted by _format_for_notion, it's a string
+                        # Otherwise, convert to a readable format
+                        if isinstance(value, str):
+                            formatted_text = value
+                        else:
+                            # Pretty print JSON for readability
+                            formatted_text = json.dumps(value, indent=2)
                     else:
-                        values = profile_data[field]
-                    properties[field] = {"multi_select": [{"name": value} for value in values]}
+                        formatted_text = str(value)
+                    
+                    # Apply Notion's character limit for rich text
+                    if len(formatted_text) > 2000:
+                        formatted_text = formatted_text[:1997] + "..."
+                    
+                    properties[field] = {"rich_text": [{"text": {"content": formatted_text}}]}
             
-            print(f"\nFinal properties object: {json.dumps(properties, indent=2)}")
+            # Always ensure Research_Status is set if not provided
+            if "Research_Status" not in properties and profile_data.get("Research_Status") != "Website Data Extracted":
+                properties["Research_Status"] = {"select": {"name": "In Progress"}}
+            
+            print(f"\nFinal properties object has {len(properties)} fields")
+            print(f"Fields being updated: {list(properties.keys())}")
+            
+            # Only show first 500 chars of each field in debug to avoid clutter
+            print("\nField preview:")
+            for field, prop in properties.items():
+                if "rich_text" in prop:
+                    content = prop["rich_text"][0]["text"]["content"]
+                    preview = content[:100] + "..." if len(content) > 100 else content
+                    print(f"  {field}: {preview}")
+                else:
+                    print(f"  {field}: {prop}")
             
             response = self._retry_operation(
                 self.notion.pages.update,
@@ -821,7 +869,7 @@ class NotionDatabaseManager:
     
     def format_rich_text(self, content: str) -> Dict[str, Any]:
         """Helper to format rich text for Notion API"""
-        return {"rich_text": [{"text": {"content": content[:2000]}}]}  # Notion limit
+        return {"rich_text": [{"text": {"content": content[:2000]}}]}  # Notion limit 
     
     def format_title(self, content: str) -> Dict[str, Any]:
         """Helper to format title for Notion API"""
@@ -846,7 +894,7 @@ class NotionDatabaseManager:
         return {"date": {"start": date_str}}
     
     def _get_current_date(self):
-        """Get current date in ISO format"""
+        """Get current date in ISO format """
         return datetime.now().strftime("%Y-%m-%d")
 
 

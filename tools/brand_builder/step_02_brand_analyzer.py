@@ -1,407 +1,307 @@
 """
-Step 2: Brand Analyzer Tool
-
-Comprehensive brand voice analysis using enhanced methodology.
-Builds on website data from Step 1 and optionally form data to create
-deep brand voice insights.
-
-Can be run independently for testing:
-    python -m tools.brand_builder.step_02_brand_analyzer --input step1_output.json --client "Test Client"
+Step 2: Brand Analyzer Tool - FULLY AUTOMATED
+Analyzes brand voice and personality based on website data from Step 1
+NO USER INPUT REQUIRED - Runs automatically after Step 1
 """
 
 import json
-import sys
 import os
+import sys
+from datetime import datetime
+
+# Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from tools.brand_builder import WorkflowStep, WorkflowContext, StepResult
 from frameworks import universal_framework
-# JSON utilities (moved from shared_utilities.py)
-import json
-import re
-from typing import Dict, Any, Tuple, Optional
-
-def clean_json_response(response_text: str) -> str:
-    """Clean and extract JSON from API responses."""
-    if not response_text:
-        return "{}"
-    
-    # Remove markdown code blocks
-    response_text = re.sub(r'```json\s*', '', response_text)
-    response_text = re.sub(r'```\s*$', '', response_text)
-    
-    # Remove any leading/trailing whitespace
-    response_text = response_text.strip()
-    
-    # Try to find JSON content between braces
-    json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-    if json_match:
-        response_text = json_match.group()
-    
-    # Clean up common JSON formatting issues
-    response_text = re.sub(r',\s*}', '}', response_text)  # Remove trailing commas
-    response_text = re.sub(r',\s*]', ']', response_text)  # Remove trailing commas in arrays
-    
-    return response_text
-
-def safe_json_parse(json_string: str, fallback: Optional[Dict] = None) -> Tuple[bool, Dict[str, Any]]:
-    """Safely parse JSON string with fallback handling."""
-    if fallback is None:
-        fallback = {}
-    
-    try:
-        cleaned = clean_json_response(json_string)
-        parsed = json.loads(cleaned)
-        return True, parsed
-    except (json.JSONDecodeError, Exception) as e:
-        print(f"⚠️ JSON parsing failed: {str(e)}")
-        return False, fallback
-# Database imports removed - using research_tools_framework instead
+from frameworks.database_manager import NotionDatabaseManager
+from frameworks.logging_manager import get_logger, LoggedOperation
+from frameworks.shared_utils import safe_json_parse
+from prompts.research_prompts.step02_Prompts.brand_analysis import get_brand_analysis_prompt
 
 
-def format_for_database(result_data):
+# Base classes copied from step_01_website_extractor.py
+class WorkflowContext:
+    """Simple context for passing data between workflow steps"""
+    def __init__(self):
+        self.inputs = {}
+        self.outputs = {}
+    
+    def set_input(self, key, value):
+        self.inputs[key] = value
+    
+    def get_input(self, key, default=None):
+        return self.inputs.get(key, default)
+    
+    def set_output(self, key, value):
+        self.outputs[key] = value
+    
+    def get_output(self, key, default=None):
+        return self.outputs.get(key, default)
+
+
+class StepResult:
+    """Simple result object for workflow steps"""
+    def __init__(self, success=False, data=None, errors=None, warnings=None, step_name=None):
+        self.success = success
+        self.data = data or {}
+        self.errors = errors or []
+        self.warnings = warnings or []
+        self.step_name = step_name
+
+
+class WorkflowStep:
+    """Base class for workflow steps"""
+    def execute(self, context: WorkflowContext) -> StepResult:
+        raise NotImplementedError("Subclasses must implement execute method")
+
+
+class BrandAnalyzer(WorkflowStep):
     """
-    Convert arrays to comma-separated strings for database storage
-    
-    Args:
-        result_data: Raw analysis results with arrays
-        
-    Returns:
-        dict: Formatted data for database storage
-    """
-    formatted = {}
-    for key, value in result_data.items():
-        if isinstance(value, list):
-            formatted[key] = ", ".join(str(item) for item in value)
-        else:
-            formatted[key] = str(value) if value is not None else ""
-    return formatted
-
-
-def save_to_voice_guidelines_database(client_name, analysis_data):
-    """
-    Save brand analysis results to Voice Guidelines database
-    
-    Args:
-        client_name: Name of the client
-        analysis_data: Formatted analysis results
-        
-    Returns:
-        bool: Success status
-    """
-    try:
-        if not VOICE_GUIDELINES_DB_ID or not NOTION_API_KEY:
-            print("⚠️ Voice Guidelines database not configured")
-            return False
-            
-        notion = Client(auth=NOTION_API_KEY)
-        
-        # Create Voice Guidelines record
-        response = notion.pages.create(
-            parent={"database_id": VOICE_GUIDELINES_DB_ID},
-            properties={
-                "Name": {
-                    "title": [{"text": {"content": f"{client_name} - Brand Analysis"}}]
-                },
-                "Status": {
-                    "select": {"name": "In Progress"}
-                },
-                "Tone_Description": {
-                    "rich_text": [{"text": {"content": analysis_data.get("communication_tone", "")}}]
-                },
-                "Word_Choice_Guidelines": {
-                    "rich_text": [{"text": {"content": f"Use: {analysis_data.get('content_themes', '')}. Avoid: {analysis_data.get('words_tones_to_avoid', '')}"}}]
-                },
-                # Note: These should be multi_select but database might not have options configured
-                # Using rich_text as fallback to avoid field type errors
-                "Word_Choice_Analysis": {
-                    "rich_text": [{"text": {"content": f"Voice Characteristics: {analysis_data.get('voice_characteristics', '')}\\nPersonality Traits: {analysis_data.get('brand_personality_traits', '')}"}}]
-                },
-                "Recommendations": {
-                    "rich_text": [{"text": {"content": f"Brand Mission: {analysis_data.get('brand_mission', '')}\\nValue Proposition: {analysis_data.get('value_proposition', '')}\\nMessaging Priorities: {analysis_data.get('messaging_priorities', '')}"}}]
-                }
-            }
-        )
-        
-        print(f"✅ Saved brand analysis to Voice Guidelines database: {response['id']}")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Failed to save to Voice Guidelines database: {str(e)}")
-        return False
-
-
-def robust_json_parse(response_text):
-    """
-    Robust JSON parsing with multiple fallback strategies
-    
-    Args:
-        response_text: The raw response text from API
-        
-    Returns:
-        tuple: (success: bool, data: dict, error_msg: str)
-    """
-    # Strategy 1: Direct parsing after basic cleanup
-    try:
-        clean_response = response_text.strip()
-        if clean_response.startswith('```json'):
-            clean_response = clean_response[7:]
-        if clean_response.endswith('```'):
-            clean_response = clean_response[:-3]
-        clean_response = clean_response.strip()
-        
-        result_data = json.loads(clean_response)
-        return True, result_data, None
-        
-    except json.JSONDecodeError:
-        pass  # Continue to Strategy 2
-    
-    # Strategy 2: Extract content between first { and last }
-    try:
-        start_idx = response_text.find('{')
-        end_idx = response_text.rfind('}')
-        if start_idx == -1 or end_idx == -1 or end_idx <= start_idx:
-            return False, {}, f"No valid JSON brackets found in response: {response_text[:200]}..."
-            
-        json_text = response_text[start_idx:end_idx+1]
-        result_data = json.loads(json_text)
-        return True, result_data, None
-        
-    except json.JSONDecodeError:
-        pass  # Continue to Strategy 3
-    
-    # Strategy 3: Try clean_json_response
-    try:
-        cleaned = clean_json_response(response_text)
-        result_data = json.loads(cleaned)
-        return True, result_data, None
-        
-    except:
-        pass  # Continue to final fallback
-    
-    # Final fallback: Return detailed error
-    return False, {}, f"All JSON parsing strategies failed. Response starts with: {response_text[:100]}... Response ends with: {response_text[-100:]}"
-
-
-class BrandAnalyzerTool(WorkflowStep):
-    """
-    Step 2: Comprehensive brand voice analysis using enhanced methodology
+    FULLY AUTOMATED brand analysis pipeline
+    Input: client_id from Step 1 (via context outputs)
+    Output: Comprehensive brand voice analysis
     """
     
-    def get_required_inputs(self):
-        return ['client_name']  # Can work with minimal data
-    
-    def get_dependencies(self):
-        return ['step_01_website_extractor']  # Prefers website data but not required
-    
-    def get_output_fields(self):
-        return [
-            'current_target_audience', 'ideal_target_audience', 'brand_values',
-            'brand_mission', 'value_proposition', 'brand_personality_traits',
-            'communication_tone', 'voice_characteristics', 'language_level',
-            'desired_emotional_impact', 'brand_archetypes', 'competitive_differentiation',
-            'content_themes', 'words_tones_to_avoid', 'messaging_priorities'
-        ]
-    
-    def validate_context(self, context: WorkflowContext):
-        """
-        Validate required context data and warn about missing optional data
+    def __init__(self):
+        super().__init__()
+        self.logger = get_logger("brand_analyzer")
         
-        Args:
-            context: WorkflowContext with input data
-            
-        Returns:
-            list: Warning messages for missing optional data
-            
-        Raises:
-            ValueError: If required data is missing
-        """
-        warnings = []
-        
-        # Check required inputs
-        if not context.get('client_name'):
-            raise ValueError("client_name is required for brand analysis")
-        
-        # Check optional but recommended inputs from Step 1
-        step1_fields = ['industry', 'company_description', 'key_products_services', 
-                       'target_markets', 'geographical_presence', 'company_size_indicators']
-        
-        missing_step1_data = [field for field in step1_fields if not context.get(field)]
-        
-        if missing_step1_data:
-            warnings.append(f"Missing website data from Step 1: {', '.join(missing_step1_data)}. Analysis will be less comprehensive.")
-        
-        # Check if we have any data at all to work with
-        has_website_data = any(context.get(field) for field in step1_fields)
-        has_form_data = any(context.get(field) for field in ['product_service_description', 'current_target_audience'])
-        
-        if not has_website_data and not has_form_data:
-            warnings.append("No website or form data available. Analysis will be based on client name only.")
-        
-        return warnings
+        # Initialize database manager
+        try:
+            self.db_manager = NotionDatabaseManager()
+            self.logger.log_operation_success("initialize_database_manager")
+        except Exception as e:
+            self.logger.log_operation_failure("initialize_database_manager", str(e))
+            self.db_manager = None
     
     def execute(self, context: WorkflowContext) -> StepResult:
-        """Execute brand voice analysis"""
+        """
+        Execute the brand analysis workflow
+        FULLY AUTOMATED - NO USER INPUT
+        """
+        with LoggedOperation("brand_analysis_pipeline", logger=self.logger) as op:
+            try:
+                # CRITICAL: Get client_id from context OUTPUTS (where Step 1 put it)
+                client_id = context.get_output("client_id")
+                
+                if not client_id:
+                    error_msg = "No client_id found in context outputs"
+                    self.logger.error(error_msg)
+                    return StepResult(
+                        success=False,
+                        errors=[error_msg],
+                        step_name="brand_analyzer"
+                    )
+                
+                self.logger.info(f"Starting brand analysis for client_id: {client_id}")
+                
+                # Fetch ALL data from Notion
+                self.logger.info("Fetching client profile from Notion")
+                client_profile = self.db_manager.get_client_profile(client_id)
+                
+                if not client_profile:
+                    error_msg = f"Could not fetch client profile for {client_id}"
+                    self.logger.error(error_msg)
+                    return StepResult(
+                        success=False,
+                        errors=[error_msg],
+                        step_name="brand_analyzer"
+                    )
+                
+                # Extract all the website data that Step 1 saved
+                client_name = client_profile.get("Name", "Unknown Client")
+                self.logger.info(f"Analyzing brand for: {client_name}")
+                
+                # Build comprehensive view of all available data
+                website_data = {
+                    "Industry": client_profile.get("Industry", ""),
+                    "Company_Description": client_profile.get("Company_Description", ""),
+                    "Brand_Mission": client_profile.get("Brand_Mission", ""),
+                    "Brand_Values": client_profile.get("Brand_Values", ""),
+                    "Value_Proposition": client_profile.get("Value_Proposition", ""),
+                    "Brand_Personality": client_profile.get("Brand_Personality", ""),
+                    "Product_Service_Description": client_profile.get("Product_Service_Description", ""),
+                    "Target_Audience": client_profile.get("Target_Audience", ""),
+                    "Communication_Tone": client_profile.get("Communication_Tone", ""),
+                    "Desired_Emotional_Impact": client_profile.get("Desired_Emotional_Impact", ""),
+                    "Website": client_profile.get("Website", ""),
+                    "Company_Size": client_profile.get("Company_Size", ""),
+                    "Contact_Email": client_profile.get("Contact_Email", ""),
+                    "Phone_Number": client_profile.get("Phone_Number", ""),
+                    "Location": client_profile.get("Location", ""),
+                    "LinkedIn_URL": client_profile.get("LinkedIn_URL", ""),
+                    "Twitter_URL": client_profile.get("Twitter_URL", ""),
+                    "Facebook_URL": client_profile.get("Facebook_URL", ""),
+                    "Instagram_URL": client_profile.get("Instagram_URL", ""),
+                    "Other_Social_Media": client_profile.get("Other_Social_Media", ""),
+                }
+                
+                # Get the Deep_Research_Workflow data that Step 1 stored
+                deep_research_raw = client_profile.get("Deep_Research_Workflow", "{}")
+                deep_research = safe_json_parse(deep_research_raw, {})
+                website_extraction = deep_research.get("website_extraction", {})
+                
+                # Add website extraction data to our analysis
+                if website_extraction:
+                    website_data["key_messaging_themes"] = website_extraction.get("key_messaging_themes", {})
+                    website_data["communication_patterns"] = website_extraction.get("communication_patterns", {})
+                    website_data["brand_voice_indicators"] = website_extraction.get("brand_voice_indicators", {})
+                
+                # Build content summary from what we have
+                content_summary = self._build_content_summary(client_name, website_data)
+                
+                # Get prompt and analyze
+                self.logger.info("Generating brand analysis prompt")
+                prompt = get_brand_analysis_prompt(client_name, website_data, content_summary)
+                
+                # Call AI for analysis
+                self.logger.info("Calling AI for brand voice analysis")
+                response = universal_framework.call_openai_api(
+                    prompt,
+                    model="gpt-4o-mini-2024-07-18"
+                )
+                
+                if not response:
+                    error_msg = "Failed to get AI response for brand analysis"
+                    self.logger.error(error_msg)
+                    return StepResult(
+                        success=False,
+                        errors=[error_msg],
+                        step_name="brand_analyzer"
+                    )
+                
+                # Parse the results
+                parsed_results = safe_json_parse(response, {})
+                if not parsed_results:
+                    # If JSON parsing fails, store as text
+                    parsed_results = {"raw_analysis": response}
+                
+                self.logger.info("Brand analysis completed successfully")
+                
+                # Save results back to Notion
+                self._save_to_notion(client_id, client_profile, parsed_results)
+                
+                # CRITICAL: Set outputs for the next step
+                context.set_output("client_id", client_id)  # Pass it forward
+                context.set_output("brand_analysis", parsed_results)
+                
+                # TODO: Add handoff to Step 3 here when it exists
+                # if self.db_manager:
+                #     self.logger.info("Handing off to Step 3: Content Collector")
+                #     from .step_03_content_collector import ContentCollector
+                #     step3 = ContentCollector()
+                #     step3_result = step3.execute(context)
+                #     if not step3_result.success:
+                #         self.logger.error(f"Step 3 failed: {step3_result.errors}")
+                
+                op.success = True
+                return StepResult(
+                    success=True,
+                    data={
+                        "client_id": client_id,
+                        "brand_analysis": parsed_results
+                    },
+                    step_name="brand_analyzer"
+                )
+                
+            except Exception as e:
+                error_msg = f"Brand analysis pipeline failed: {str(e)}"
+                self.logger.error(error_msg)
+                import traceback
+                traceback.print_exc()
+                return StepResult(
+                    success=False,
+                    errors=[error_msg],
+                    step_name="brand_analyzer"
+                )
+    
+    def _build_content_summary(self, client_name, website_data):
+        """Build a comprehensive content summary from all available data"""
+        summary = f"Company: {client_name}\n\n"
+        
+        # Add non-empty fields to summary
+        field_mappings = {
+            "Industry": "Industry",
+            "Company_Description": "Description",
+            "Brand_Mission": "Mission",
+            "Brand_Values": "Values",
+            "Value_Proposition": "Value Proposition",
+            "Brand_Personality": "Personality",
+            "Product_Service_Description": "Products/Services",
+            "Target_Audience": "Target Audience",
+            "Communication_Tone": "Communication Tone",
+            "Desired_Emotional_Impact": "Emotional Impact",
+            "Company_Size": "Company Size",
+            "Location": "Location"
+        }
+        
+        for field, label in field_mappings.items():
+            value = website_data.get(field)
+            if value and value != "Not found" and value != "":
+                summary += f"{label}: {value}\n"
+        
+        # Add social media if present
+        social_urls = []
+        for social in ["LinkedIn_URL", "Twitter_URL", "Facebook_URL", "Instagram_URL"]:
+            url = website_data.get(social)
+            if url and url != "Not found":
+                social_urls.append(f"{social.replace('_URL', '')}: {url}")
+        
+        if social_urls:
+            summary += f"\nSocial Media:\n" + "\n".join(social_urls) + "\n"
+        
+        # Add key messaging themes if available
+        if website_data.get("key_messaging_themes"):
+            summary += f"\nKey Messaging Themes: {json.dumps(website_data['key_messaging_themes'], indent=2)}\n"
+        
+        return summary
+    
+    def _save_to_notion(self, client_id, client_profile, parsed_results):
+        """Save brand analysis results back to Notion"""
         try:
-            # Validate context and get warnings
-            warnings = self.validate_context(context)
-            client_name = context.get('client_name')
+            self.logger.info("Saving brand analysis to Notion")
             
-            # Get website data from Step 1 if available
-            website_data = {}
-            for field in ['industry', 'company_description', 'key_products_services', 
-                         'target_markets', 'geographical_presence', 'company_size_indicators']:
-                if context.get(field):
-                    website_data[field] = context.get(field)
+            # Get existing workflow data
+            deep_research_raw = client_profile.get("Deep_Research_Workflow", "{}")
+            workflow_data = safe_json_parse(deep_research_raw, {})
             
-            # Get form data if available
-            form_data = {}
-            for field in ['product_service_description', 'current_target_audience', 'ideal_target_audience',
-                         'brand_values', 'brand_mission', 'desired_emotional_impact', 
-                         'brand_personality', 'words_tones_to_avoid']:
-                if context.get(field):
-                    form_data[field] = context.get(field)
-            
-            # Get prompt and temperature from modular system
-            
-            # Get prompt and temperature from modular system
-            prompt, temperature = prompt_wrapper.get_brand_voice_analysis_prompt(
-                client_name=client_name,
-                website_data=website_data,
-                form_data=form_data
-            )
-            
-            # Define API schema for brand voice analysis validation
-            api_schema = {
-                "type": "object",
-                "properties": {
-                    "current_target_audience": {"type": "string"},
-                    "ideal_target_audience": {"type": "string"},
-                    "brand_values": {"type": "array", "items": {"type": "string"}},
-                    "brand_mission": {"type": "string"},
-                    "value_proposition": {"type": "string"},
-                    "brand_personality_traits": {"type": "array", "items": {"type": "string"}},
-                    "communication_tone": {"type": "string"},
-                    "voice_characteristics": {"type": "array", "items": {"type": "string"}},
-                    "language_level": {"type": "string"},
-                    "desired_emotional_impact": {"type": "array", "items": {"type": "string"}},
-                    "brand_archetypes": {"type": "array", "items": {"type": "string"}},
-                    "competitive_differentiation": {"type": "string"},
-                    "content_themes": {"type": "array", "items": {"type": "string"}},
-                    "words_tones_to_avoid": {"type": "array", "items": {"type": "string"}},
-                    "messaging_priorities": {"type": "array", "items": {"type": "string"}}
-                },
-                "required": ["current_target_audience", "ideal_target_audience", "brand_values", "brand_mission", "brand_personality_traits"]
+            # Add our analysis
+            workflow_data["brand_analysis"] = {
+                "analysis_results": parsed_results,
+                "completed_at": datetime.now().isoformat(),
+                "status": "completed"
             }
             
-            # Call API
-            response = universal_framework.call_gemini_api(prompt, response_schema=api_schema, temperature=temperature)
+            # Update Notion with the new analysis
+            update_data = {
+                "Deep_Research_Workflow": json.dumps(workflow_data),
+                "Research_Status": "Brand Analysis Completed"
+            }
             
-            # Check for API error responses before JSON parsing
-            if response.startswith("Error:"):
-                return StepResult(
-                    success=False,
-                    data={},
-                    errors=[f"API call failed: {response}"],
-                    warnings=[],
-                    step_name=self.name
-                )
+            # Also update specific fields if they were analyzed
+            if isinstance(parsed_results, dict):
+                # Map analysis results to Notion fields
+                if parsed_results.get("brand_voice"):
+                    update_data["Communication_Tone"] = str(parsed_results["brand_voice"])
+                
+                if parsed_results.get("tone_characteristics"):
+                    update_data["Brand_Personality"] = str(parsed_results["tone_characteristics"])
+                
+                if parsed_results.get("messaging_guidelines"):
+                    # Store in a custom field or append to existing
+                    existing_notes = client_profile.get("Notes", "")
+                    new_notes = f"{existing_notes}\n\nBrand Messaging Guidelines:\n{parsed_results['messaging_guidelines']}"
+                    update_data["Notes"] = new_notes.strip()
             
-            # Use robust JSON parsing with multiple fallback strategies
-            parse_success, result_data, parse_error = robust_json_parse(response)
-            if not parse_success:
-                return StepResult(
-                    success=False,
-                    data={},
-                    errors=[parse_error],
-                    warnings=[],
-                    step_name=self.name
-                )
+            # Save back to Notion
+            success = self.db_manager.update_client_profile(client_id, update_data)
             
-            # Combine with website data if available
-            final_data = {**website_data, **result_data}
-            
-            # Format data for database storage and save to Voice Guidelines
-            formatted_data = format_for_database(result_data)
-            database_success = save_to_voice_guidelines_database(client_name, formatted_data)
-            
-            # Add database save status to warnings if failed
-            if not database_success:
-                warnings.append("Failed to save analysis to Voice Guidelines database")
-            
-            return StepResult(
-                success=True,
-                data=final_data,
-                errors=[],
-                warnings=warnings,
-                step_name=self.name
-            )
-            
-        except ValueError as e:
-            # Context validation error
-            return StepResult(
-                success=False,
-                data={},
-                errors=[str(e)],
-                warnings=[],
-                step_name=self.name
-            )
+            if success:
+                self.logger.info("Brand analysis saved to Notion successfully")
+            else:
+                self.logger.error("Failed to save brand analysis to Notion")
+                
         except Exception as e:
-            return StepResult(
-                success=False,
-                data={},
-                errors=[f"Brand voice analysis failed: {str(e)}"],
-                warnings=[],
-                step_name=self.name
-            )
-
-
-def main():
-    """CLI interface for testing step independently"""
-    import argparse
-    
-    parser = argparse.ArgumentParser(description='Analyze brand voice for Brand Builder')
-    parser.add_argument('--client', required=True, help='Client name')
-    parser.add_argument('--input', help='Input JSON file from previous step')
-    parser.add_argument('--output', help='Output file for results (JSON)')
-    
-    args = parser.parse_args()
-    
-    # Create context
-    context_data = {'client_name': args.client}
-    
-    # Load input data if provided
-    if args.input:
-        with open(args.input, 'r') as f:
-            input_data = json.load(f)
-            context_data.update(input_data)
-    
-    context = WorkflowContext(context_data)
-    
-    # Run step
-    step = BrandAnalyzerTool()
-    result = step.execute(context)
-    
-    # Output results
-    if result.success:
-        print("✅ Brand analysis successful!")
-        print(f"📊 Generated {len(result.data)} brand insights")
-        
-        if args.output:
-            with open(args.output, 'w') as f:
-                json.dump(result.data, f, indent=2)
-            print(f"💾 Results saved to {args.output}")
-        else:
-            print("📋 Key Results:")
-            key_fields = ['brand_mission', 'brand_values', 'current_target_audience', 'brand_personality_traits']
-            for field in key_fields:
-                if field in result.data:
-                    print(f"  {field}: {result.data[field]}")
-    else:
-        print("❌ Brand analysis failed!")
-        for error in result.errors:
-            print(f"  Error: {error}")
-
-
-if __name__ == "__main__":
-    main()
+            self.logger.error(f"Error saving to Notion: {str(e)}")
+            import traceback
+            traceback.print_exc()
