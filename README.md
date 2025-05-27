@@ -1,156 +1,155 @@
-Here's your updated README reflecting the recent improvements:
+# AI Tools Suite
 
-```markdown
-# Jon's AI Tools
+A modular toolkit for AI-powered content generation and prompt engineering, built with Streamlit and Google Gemini 2.0 Flash.
 
-Enterprise-grade AI toolkit for automated brand research and content generation. Built with Streamlit, Python, and Google Gemini 2.0 Flash. Features robust Notion integration with automatic retry logic and structured logging.
+## Overview
 
-## 🚀 Key Features
+This project provides a suite of specialized tools for content creation and development assistance, featuring a unified client management system with Notion integration and structured logging throughout.
 
-- **AI-Powered Content Generation**: Adaptive copy creation for multiple platforms
-- **Enterprise Reliability**: Exponential backoff retry logic on all API calls
-- **Production Monitoring**: Structured logging with operation tracking
-- **Unified Architecture**: Zero code duplication, single source of truth patterns
-- **Multi-Platform Content**: Adaptive copy generation for all major social platforms
-- **Retro Gaming UI**: Massive square buttons, neon aesthetics, and easter eggs
-- **Warning System**: 5-second profanity-laced warning screen for Copy Generator
+## Architecture
 
-## 🛠️ Tools
+```
+.
+├── app.py                    # Main Streamlit application
+├── frameworks/               # Core infrastructure
+│   ├── database_manager.py   # Notion API integration
+│   ├── unified_client_manager.py
+│   ├── universal_framework.py
+│   ├── refiner_framework.py
+│   ├── logging_manager.py
+│   └── shared_utils.py
+├── tools/                    # Tool implementations
+│   ├── social_copy_tool.py
+│   ├── prompt_refiner.py
+│   ├── coder_helper.py
+│   └── context_gatherer.py
+└── HOUSEKEEPING/            # Documentation and utilities
+    ├── *.md                 # Project documentation
+    ├── *.py                 # Utility scripts
+    └── DOCS/                # Change logs
+```
 
+## Tools
 
 ### Copy Generator
-AI-powered content adaptation with retro gaming UI
-- Platform-specific optimization (Facebook, LinkedIn, TikTok, YouTube)
-- Maintains brand voice consistency
-- Built-in tone adjustments
-- Legacy Advisors mode for specialized content
-- Retro video game aesthetic with glowing neon interface
-- Self-deprecating success/error messages
+Platform-specific content generation with customizable tone and style.
+- Supports: Facebook, LinkedIn, TikTok, YouTube
+- Features: Voice consistency, tone adjustment, platform optimization
+- Special mode: Legacy Advisors for specialized financial content
 
 ### Prompt Refiner
-Iterative prompt engineering assistant
-- Real-time refinement suggestions
-- Version history with undo
+Iterative prompt improvement through AI-assisted refinement.
+- Real-time suggestions
+- Version history with undo capability
 - Meta-prompt optimization
 
 ### Coder Helper
-Technical prompt optimization for development tasks
+Technical prompt optimization for development tasks.
+- Code-focused refinements
+- Technical language optimization
 
-## 📋 Setup
+## Installation
 
 ```bash
 # Clone repository
-git clone [repository-url]
+git clone <repository-url>
 cd jons-ai-tools
 
-# Configure environment
-cp .streamlit/secrets.toml.template .streamlit/secrets.toml
-# Edit .streamlit/secrets.toml with your API keys:
-# - OpenAI API key
-# - Google Gemini API key  
-# - Notion integration token
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Run application
+# Configure environment
+cp .streamlit/secrets.toml.template .streamlit/secrets.toml
+# Edit .streamlit/secrets.toml with your API keys
+```
+
+## Configuration
+
+Required API keys in `.streamlit/secrets.toml`:
+```toml
+OPENAI_API_KEY = "your-openai-key"
+GOOGLE_API_KEY = "your-gemini-key"
+NOTION_API_KEY = "your-notion-key"
+NOTION_DATABASE_ID = "your-database-id"
+```
+
+## Usage
+
+```bash
 streamlit run app.py
 ```
 
-## 🏗️ Architecture
+Navigate to `http://localhost:8501` in your browser.
 
-```
-frameworks/
-├── database_manager.py        # Notion operations with retry logic
-├── unified_client_manager.py  # Centralized client selection
-├── universal_framework.py     # AI/API integrations
-├── shared_utils.py           # Common utilities
-└── logging_manager.py        # Structured logging system
+## Development
 
-tools/
-├── social_copy_tool.py      # Copy generator implementation
-├── prompt_refiner.py        # Prompt refinement tool
-├── coder_helper.py          # Coding assistance tool
-└── context_gatherer.py      # Context management utilities
+### Project Structure
 
-xfindandfixshit/             # Testing & debugging
-├── tests/                   # Test suite
-├── debug/                   # Debug utilities
-└── legacy/                  # Archived code
-```
+- **frameworks/**: Core utilities and integrations
+  - Retry logic with exponential backoff
+  - Structured logging
+  - Unified client management
+  - Database operations
 
-## 🗄️ Notion Integration
+- **tools/**: Individual tool implementations
+  - Each tool follows a consistent interface
+  - Shared utilities in `context_gatherer.py`
 
-**Three Connected Databases:**
-```
-AI Client Library (Main)
-├── Content Samples (1:N relation)
-├── Voice Guidelines (1:N relation)
-└── 40+ fields including social URLs, brand values, tool tracking
-```
+- **HOUSEKEEPING/**: Project management
+  - Custom commands via CLAUDE.md
+  - Documentation and utility scripts
 
-**Features:**
-- Automatic retry on API failures
-- Field validation and sanitization
-- Progress tracking with checkboxes
-- JSON storage for workflow data
+### Custom Commands
 
-## 🧪 Testing
+When using Claude Code, these commands are available:
+- `wrap it up` - Session wrap-up
+- `update context` - Update CONTEXT.md
+- `status check` - Project status report
+- `document this` - Generate documentation
+
+### Testing
 
 ```bash
 cd xfindandfixshit
 pytest tests/ -v
-
-# Run specific test
-pytest tests/test_database_manager.py
-
-# With coverage
-pytest tests/ --cov=frameworks --cov=tools
 ```
 
-## 💻 Development
+## API Integration
 
-### Core Principles
-- **Single Responsibility**: One purpose per module
-- **No Circular Imports**: Clean dependency hierarchy
-- **Unified Patterns**: Use `unified_client_manager` for all client ops
-- **Structured Logging**: Use `logging_manager`, never basic logging
+### Notion Database
+The system integrates with Notion for client data persistence:
+- Client profiles
+- Tool completion tracking
+- Content samples
+- Voice guidelines
 
-### Adding New Features
-1. Tests go in `xfindandfixshit/tests/`
-2. Use retry logic for external API calls
-3. Log operations with structured logging
-4. Follow existing patterns in `shared_utils.py`
+### AI Models
+- **Google Gemini 2.0 Flash**: Primary content generation
+- **OpenAI GPT-4**: Fallback and specialized tasks
 
-## 📊 Monitoring
+## Logging
 
-The system logs structured data for all operations:
-- Operation start/success/failure
-- API call performance
-- Database operations
-- Error tracking with context
+Structured logging is implemented throughout:
+```python
+from frameworks.logging_manager import get_logger
 
-## 🚦 Status
+logger = get_logger(__name__)
+logger.log_operation_start("operation_name", **context)
+logger.log_operation_success("operation_name", **results)
+logger.log_operation_failure("operation_name", error_msg, **context)
+```
 
-**Production-ready, enterprise-grade architecture, zero technical debt**
+## Contributing
 
-Recent improvements:
-- ✅ Consolidated client selection (no duplicates)
-- ✅ Retry logic on all Notion API calls
-- ✅ Structured logging throughout
-- ✅ Shared utilities module
-- ✅ Dead code removed
+1. Follow existing patterns in `shared_utils.py`
+2. Use structured logging for all operations
+3. Implement retry logic for external API calls
+4. Add tests in `xfindandfixshit/tests/`
 
-## 🎯 Roadmap
+## License
 
-1. **Testing**: Expand coverage for steps 2-9
-2. **Performance**: Implement API response caching
-3. **UI**: Dashboard for monitoring operations
-4. **Scale**: Queue system for bulk processing
-
-## 📝 License
-
-uh... beats me. 
-
-## 🤝 Contributing
-
+[License information pending]
