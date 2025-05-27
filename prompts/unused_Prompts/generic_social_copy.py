@@ -43,7 +43,5 @@ Example (for a podcast/video about a robot making coffee):
 Social Post:
 What happens when a coffee robot loses its mind? It’s hilarious, chaotic, and completely unfiltered. Watch the tech fail you didn’t know you needed. #TechFail #RobotFail #CoffeeDisaster #ViralVideo
 
-⸻
 
-Let me know if you want this adapted for a specific platform (LinkedIn, X, TikTok, etc.).
 """
