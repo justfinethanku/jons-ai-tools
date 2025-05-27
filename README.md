@@ -12,6 +12,8 @@ Enterprise-grade AI toolkit for automated brand research and content generation.
 - **Production Monitoring**: Structured logging with operation tracking
 - **Unified Architecture**: Zero code duplication, single source of truth patterns
 - **Multi-Platform Content**: Adaptive copy generation for all major social platforms
+- **Retro Gaming UI**: Massive square buttons, neon aesthetics, and easter eggs
+- **Warning System**: 5-second profanity-laced warning screen for Copy Generator
 
 ## 🛠️ Tools
 
@@ -21,12 +23,16 @@ Fully automated 9-step brand research pipeline
 - **Steps 2-9**: Deep brand analysis (voice, audience, personality)
 - **Output**: Auto-populates 3 connected Notion databases
 - **No manual input** after initial URL entry
+- **Current Status**: "BROKEN AS FUCK BRB" (temporarily under maintenance)
 
 ### Copy Generator
-AI-powered content adaptation
+AI-powered content adaptation with retro gaming UI
 - Platform-specific optimization (Facebook, LinkedIn, TikTok, YouTube)
 - Maintains brand voice consistency
 - Built-in tone adjustments
+- Legacy Advisors mode for specialized content
+- Retro video game aesthetic with glowing neon interface
+- Self-deprecating success/error messages
 
 ### Prompt Refiner
 Iterative prompt engineering assistant
