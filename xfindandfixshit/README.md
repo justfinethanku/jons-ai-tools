@@ -14,7 +14,6 @@ xfindandfixshit/
 │   ├── general/          # General debugging tools
 │   ├── frameworks/       # Framework-specific debug scripts
 │   ├── tools/           # Tool-specific debug scripts
-│   └── brand_builder/   # Brand Builder debug scripts
 ├── fixtures/            # Test fixtures and mock data
 ├── legacy/             # Archived/obsolete tests and scripts
 └── pytest.ini         # Pytest configuration

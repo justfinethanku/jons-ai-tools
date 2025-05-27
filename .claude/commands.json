@@ -1,0 +1,7 @@
+{
+  "commands": {
+    "wrap it up": "python wrap_up.py",
+    "status": "python project_status.py",
+    "document this": "python document_changes.py"
+  }
+}

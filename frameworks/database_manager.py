@@ -687,7 +687,8 @@ class NotionDatabaseManager:
         """Get completion status of all tools for a client"""
         if not client_page_id:
             return {
-                "brand_builder": False, "content_collector": False, "voice_auditor": False,
+                # "brand_builder": False,  # Removed - brand builder tool deleted
+                "content_collector": False, "voice_auditor": False,
                 "audience_definer": False, "voice_traits_builder": False, "gap_analyzer": False,
                 "content_rewriter": False, "guidelines_finalizer": False
             }
@@ -699,13 +700,14 @@ class NotionDatabaseManager:
             )
             props = page.get("properties", {})
             status = {
-                "brand_builder": False, "content_collector": False, "voice_auditor": False,
+                # "brand_builder": False,  # Removed - brand builder tool deleted
+                "content_collector": False, "voice_auditor": False,
                 "audience_definer": False, "voice_traits_builder": False, "gap_analyzer": False,
                 "content_rewriter": False, "guidelines_finalizer": False
             }
             
             prop_map = {
-                "Brand_Builder_Complete": "brand_builder",
+                # "Brand_Builder_Complete": "brand_builder",  # Removed - brand builder tool deleted
                 "Content_Collector_Complete": "content_collector",
                 "Voice_Auditor_Complete": "voice_auditor",
                 "Audience_Definer_Complete": "audience_definer",
@@ -723,7 +725,8 @@ class NotionDatabaseManager:
         except Exception as e:
             logger.error(f"Error retrieving tool completion status: {str(e)}")
             return {
-                "brand_builder": False, "content_collector": False, "voice_auditor": False,
+                # "brand_builder": False,  # Removed - brand builder tool deleted
+                "content_collector": False, "voice_auditor": False,
                 "audience_definer": False, "voice_traits_builder": False, "gap_analyzer": False,
                 "content_rewriter": False, "guidelines_finalizer": False
             }
@@ -731,7 +734,7 @@ class NotionDatabaseManager:
     def mark_tool_complete(self, client_page_id, tool_name):
         """Mark a specific tool as complete for a client"""
         property_map = {
-            "brand_builder": "Brand_Builder_Complete",
+            # "brand_builder": "Brand_Builder_Complete",  # Removed - brand builder tool deleted
             "content_collector": "Content_Collector_Complete",
             "voice_auditor": "Voice_Auditor_Complete",
             "audience_definer": "Audience_Definer_Complete",
@@ -760,7 +763,7 @@ class NotionDatabaseManager:
     def update_tool_completion(self, client_page_id: str, tool_name: str, completed: bool = True):
         """Update tool completion checkbox using new schema fields"""
         field_map = {
-            "brand_builder": "Brand_Builder_Complete",
+            # "brand_builder": "Brand_Builder_Complete",  # Removed - brand builder tool deleted
             "content_collector": "Content_Collector_Complete",
             "voice_auditor": "Voice_Auditor_Complete",
             "audience_definer": "Audience_Definer_Complete",

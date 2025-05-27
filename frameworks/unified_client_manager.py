@@ -223,34 +223,10 @@ class UnifiedClientManager:
     
     def _analyze_website(self, client_name: str, website_url: str) -> Optional[Dict[str, Any]]:
         """Analyze website and extract company data"""
-        try:
-            from tools.brand_builder import extract_website_data, analyze_brand_voice
-            
-            # Step 1: Extract website data
-            with st.spinner("Step 1: Extracting company data from website..."):
-                step1_success, website_data, step1_error = extract_website_data(client_name, website_url)
-            
-            if not step1_success:
-                st.sidebar.error(f"Step 1 failed: {step1_error}")
-                return None
-            
-            st.sidebar.success("✅ Step 1 complete: Company data extracted")
-            
-            # Step 2: Analyze brand voice
-            with st.spinner("Step 2: Analyzing brand voice..."):
-                step2_success, analysis_result, step2_error = analyze_brand_voice(client_name, website_data)
-            
-            if step2_success:
-                st.sidebar.success("✅ Step 2 complete: Brand voice analysis finished")
-                return analysis_result
-            else:
-                st.sidebar.warning(f"Step 2 partial: {step2_error}")
-                return website_data  # Use partial data
-                
-        except Exception as e:
-            self.logger.error("Website analysis failed", error=str(e), client_name=client_name, website_url=website_url)
-            st.sidebar.error(f"Website analysis failed: {str(e)}")
-            return None
+        # Brand builder functionality has been removed
+        # This now returns None and lets the client be created without analysis
+        st.sidebar.info("Website analysis is temporarily unavailable. Client will be created without automatic data extraction.")
+        return None
     
     def _update_client_with_extracted_data(self, client_id: str, extracted_data: Dict[str, Any], website_url: str):
         """Update client profile with extracted website data"""
@@ -310,7 +286,7 @@ class UnifiedClientManager:
         status_emojis = {True: "✅", False: "⬜"}
         
         tool_labels = [
-            ("brand_builder", "1. Brand Builder"),
+            # ("brand_builder", "1. Brand Builder"),  # Removed
             ("content_collector", "2. Content Collector"),
             ("voice_auditor", "3. Voice Auditor"),
             ("audience_definer", "4. Audience Definer"),
@@ -332,7 +308,7 @@ class UnifiedClientManager:
     def _get_default_tool_status(self) -> Dict[str, bool]:
         """Get default tool status (all incomplete)"""
         return {
-            "brand_builder": False,
+            # "brand_builder": False,  # Removed
             "content_collector": False,
             "voice_auditor": False,
             "audience_definer": False,

@@ -7,7 +7,7 @@ Enterprise-grade AI toolkit for automated brand research and content generation.
 
 ## 🚀 Key Features
 
-- **Automated Brand Analysis**: 9-step pipeline from website URL to complete brand profile
+- **AI-Powered Content Generation**: Adaptive copy creation for multiple platforms
 - **Enterprise Reliability**: Exponential backoff retry logic on all API calls
 - **Production Monitoring**: Structured logging with operation tracking
 - **Unified Architecture**: Zero code duplication, single source of truth patterns
@@ -17,13 +17,6 @@ Enterprise-grade AI toolkit for automated brand research and content generation.
 
 ## 🛠️ Tools
 
-### Brand Builder
-Fully automated 9-step brand research pipeline
-- **Step 1**: Website extraction with intelligent sitemap discovery
-- **Steps 2-9**: Deep brand analysis (voice, audience, personality)
-- **Output**: Auto-populates 3 connected Notion databases
-- **No manual input** after initial URL entry
-- **Current Status**: "BROKEN AS FUCK BRB" (temporarily under maintenance)
 
 ### Copy Generator
 AI-powered content adaptation with retro gaming UI
@@ -75,9 +68,10 @@ frameworks/
 └── logging_manager.py        # Structured logging system
 
 tools/
-└── brand_builder/
-    ├── step_01_website_extractor.py  # Automated extraction
-    └── steps_02-09_*.py             # Analysis modules
+├── social_copy_tool.py      # Copy generator implementation
+├── prompt_refiner.py        # Prompt refinement tool
+├── coder_helper.py          # Coding assistance tool
+└── context_gatherer.py      # Context management utilities
 
 xfindandfixshit/             # Testing & debugging
 ├── tests/                   # Test suite
