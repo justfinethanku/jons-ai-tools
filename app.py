@@ -1,5 +1,5 @@
 import streamlit as st
-from frameworks.universal_framework import universal_ui, home_button
+from frameworks.universal_framework import home_button
 from frameworks.refiner_framework import run_refiner
 import tools.prompt_refiner as prompt_refiner
 import tools.coder_helper as coder_helper
@@ -100,8 +100,7 @@ if st.session_state.get("show_copy_warning", False):
     st.session_state.tool = "Copy Generator"
     st.rerun()
 
-# Let universal_ui handle client selection
-universal_ui()
+# Client selection removed
 home_button()
 
 if st.session_state.tool == "home":

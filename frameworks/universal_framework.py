@@ -15,13 +15,11 @@ logger = get_logger("universal_framework")
 
 st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
 
-# Client selection is now handled by unified_client_manager
+# Client selection removed - no longer using Notion
 
 def client_selection_sidebar():
-    """Wrapper for backward compatibility"""
-    from frameworks.unified_client_manager import get_unified_client_manager
-    manager = get_unified_client_manager("universal")
-    return manager.client_selector_sidebar(allow_new_client=False)
+    """Removed - no client selection needed"""
+    return None
 
 def enhance_prompt_with_client_context(prompt_template: str, client_data: Optional[Dict[str, Any]]) -> str:
     """Enhance a prompt template with client-specific context.
@@ -126,8 +124,8 @@ def home_button(outputs_dict=None, key_prefix="", tool_name=None):
 
 def universal_ui():
     """Universal elements for all tools"""
-    # Add client selection to all tools
-    client_selection_sidebar()
+    # Client selection removed
+    pass
 
 def call_openai_api(prompt: str, model: str = "gpt-4.1-2025-04-14", temperature: float = 1.0) -> str:
     """
