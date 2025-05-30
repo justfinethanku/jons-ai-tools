@@ -1,10 +1,10 @@
 # AI Tools Suite
 
-A modular toolkit for AI-powered content generation and prompt engineering, built with Streamlit and Google Gemini/OpenAI APIs.
+A modular toolkit for AI-powered content generation and prompt engineering, built with Streamlit using Gemini, 
 
 ## Overview
 
-This project provides a suite of specialized tools for content creation and development assistance, featuring structured logging throughout.
+This project provides a suite of specialized tools for content creation and development assistance, featuring a unified client management system with Notion integration and structured logging throughout.
 
 ## Architecture
 
@@ -12,6 +12,8 @@ This project provides a suite of specialized tools for content creation and deve
 .
 ├── app.py                    # Main Streamlit application
 ├── frameworks/               # Core infrastructure
+│   ├── database_manager.py   # Notion API integration
+│   ├── unified_client_manager.py
 │   ├── universal_framework.py
 │   ├── refiner_framework.py
 │   ├── logging_manager.py
@@ -19,7 +21,8 @@ This project provides a suite of specialized tools for content creation and deve
 ├── tools/                    # Tool implementations
 │   ├── social_copy_tool.py
 │   ├── prompt_refiner.py
-│   └── coder_helper.py
+│   ├── coder_helper.py
+│   └── context_gatherer.py
 └── HOUSEKEEPING/            # Documentation and utilities
     ├── *.md                 # Project documentation
     ├── *.py                 # Utility scripts
@@ -68,11 +71,10 @@ cp .streamlit/secrets.toml.template .streamlit/secrets.toml
 
 Required API keys in `.streamlit/secrets.toml`:
 ```toml
-[openai]
 OPENAI_API_KEY = "your-openai-key"
-
-[google]
-GEMINI_API_KEY = "your-gemini-key"
+GOOGLE_API_KEY = "your-gemini-key"
+NOTION_API_KEY = "your-notion-key"
+NOTION_DATABASE_ID = "your-database-id"
 ```
 
 ## Usage
@@ -87,14 +89,15 @@ Navigate to `http://localhost:8501` in your browser.
 
 ### Project Structure
 
-- **frameworks/**: Core utilities
+- **frameworks/**: Core utilities and integrations
   - Retry logic with exponential backoff
   - Structured logging
-  - API call wrappers
-  - Shared utilities
+  - Unified client management
+  - Database operations
 
 - **tools/**: Individual tool implementations
   - Each tool follows a consistent interface
+  - Shared utilities in `context_gatherer.py`
 
 - **HOUSEKEEPING/**: Project management
   - Custom commands via CLAUDE.md
@@ -117,9 +120,16 @@ pytest tests/ -v
 
 ## API Integration
 
+### Notion Database
+The system integrates with Notion for client data persistence:
+- Client profiles
+- Tool completion tracking
+- Content samples
+- Voice guidelines
+
 ### AI Models
-- **Google Gemini 2.5 Flash/Pro**: Primary content generation and prompt refinement
-- **OpenAI GPT-4.1**: Social copy generation and specialized tasks
+- **Google Gemini 2.0 Flash**: Primary content generation
+- **OpenAI GPT-4**: Fallback and specialized tasks
 
 ## Logging
 
