@@ -44,6 +44,46 @@ class ToolCapability(Enum):
     pass
 
 
+@dataclass 
+class ToolInput:
+    """
+    Standardized input structure for tool execution.
+    
+    Attributes:
+        operation: Operation to perform (e.g., "generate", "analyze")
+        parameters: Operation-specific parameters
+        configuration: Tool configuration overrides
+        metadata: Additional metadata for tracking
+    """
+    # operation: str
+    # parameters: Dict[str, Any] = field(default_factory=dict)
+    # configuration: Dict[str, Any] = field(default_factory=dict)
+    # metadata: Dict[str, Any] = field(default_factory=dict)
+    pass
+
+
+@dataclass
+class ToolResult:
+    """
+    Standardized result structure for tool execution.
+    
+    Attributes:
+        success: Whether the operation was successful
+        results: Dictionary of operation results
+        errors: List of error messages if operation failed
+        warnings: List of warning messages
+        execution_time: Time taken to execute in seconds
+        metadata: Additional result metadata
+    """
+    # success: bool
+    # results: Dict[str, Any] = field(default_factory=dict)
+    # errors: List[str] = field(default_factory=list)
+    # warnings: List[str] = field(default_factory=list)
+    # execution_time: float = 0.0
+    # metadata: Dict[str, Any] = field(default_factory=dict)
+    pass
+
+
 @dataclass
 class ToolMetadata:
     """
