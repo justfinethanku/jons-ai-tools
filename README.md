@@ -79,11 +79,26 @@ NOTION_DATABASE_ID = "your-database-id"
 
 ## Usage
 
+### Command Line
 ```bash
 streamlit run app.py
 ```
 
 Navigate to `http://localhost:8501` in your browser.
+
+### Desktop Icon (macOS)
+Create a desktop icon for one-click access:
+
+```bash
+python3 create_desktop_icon.py
+```
+
+This creates `AI Tools.app` that you can drag to your Desktop. Double-clicking the icon will:
+- Start the application automatically
+- Open your browser to the correct URL
+- Handle all setup (virtual environment, server startup)
+
+See [DESKTOP_ICON.md](DESKTOP_ICON.md) for detailed setup instructions.
 
 ## Development
 
