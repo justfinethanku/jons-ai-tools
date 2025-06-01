@@ -65,8 +65,20 @@ if [ -d "venv" ]; then
     source venv/bin/activate
 fi
 
-# Start the Streamlit app and open browser
+# Function to cleanup on exit
+cleanup() {{
+    echo "Stopping AI Tools..."
+    # Kill the Streamlit process
+    pkill -f "streamlit run app.py"
+    exit 0
+}}
+
+# Set trap to cleanup when script exits
+trap cleanup EXIT SIGTERM SIGINT
+
+# Start the Streamlit app in background
 streamlit run app.py --server.headless true --server.port 8501 &
+STREAMLIT_PID=$!
 
 # Wait a moment for the server to start
 sleep 3
@@ -74,11 +86,27 @@ sleep 3
 # Open the browser
 open http://localhost:8501
 
-# Keep the terminal window open (optional)
-# You can remove this line if you don't want the terminal to stay open
+# Monitor for browser process
 echo "AI Tools is running at http://localhost:8501"
-echo "Close this window to stop the application"
-wait
+echo "Server will stop automatically when you quit the browser"
+
+# Wait for the browser to close by monitoring the port
+while true; do
+    # Check if any browser is still connected to our port
+    if ! lsof -i :8501 | grep -q ESTABLISHED; then
+        # Wait a bit more to avoid false positives
+        sleep 10
+        if ! lsof -i :8501 | grep -q ESTABLISHED; then
+            echo "No active browser connections detected. Stopping server..."
+            break
+        fi
+    fi
+    sleep 5
+done
+
+# Stop the Streamlit process
+kill $STREAMLIT_PID 2>/dev/null
+echo "AI Tools stopped."
 ''')
     
     # Make the launcher script executable
