@@ -1,3 +1,24 @@
+"""
+@RULE:PURPOSE: TikTok social media copy generation for algorithm-friendly promotion
+@RULE:PLATFORM: tiktok
+@RULE:CHARACTER_LIMIT: 280
+@RULE:HASHTAG_COUNT: 3-5
+@RULE:EMOJI_ALLOWED: false
+@RULE:EM_DASH_ALLOWED: false
+@RULE:REQUIRED_CTA: true
+@RULE:TONE_STYLE: casual, energetic, brand-aligned
+@RULE:CONTENT_TYPE: shock, curiosity, bold question
+@RULE:HASHTAG_TYPE: relevant, trending, topic-specific
+@RULE:ENGAGEMENT_RULES: no clickbait, no engagement bait
+@RULE:PACING: quick setup, fast payoff, strong CTA
+@RULE:MODEL_PREFERENCE: gemini-2.5-pro-preview-05-06
+@RULE:TEMPERATURE: 0.8
+@RULE:FALLBACK_MODEL: gpt-4.1-2025-04-14
+@RULE:MAX_RETRIES: 4
+@RULE:TOP_P: 0.95
+@RULE:TOP_K: 50
+"""
+
 PROMPT="""Role
 
 You are a TikTok Social Media Manager.

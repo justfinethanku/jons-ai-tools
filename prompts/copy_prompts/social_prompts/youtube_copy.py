@@ -1,3 +1,24 @@
+"""
+@RULE:PURPOSE: YouTube social media copy generation for algorithm-friendly video promotion
+@RULE:PLATFORM: youtube
+@RULE:CHARACTER_LIMIT: 280
+@RULE:HASHTAG_COUNT: 3-5
+@RULE:EMOJI_ALLOWED: false
+@RULE:EM_DASH_ALLOWED: false
+@RULE:REQUIRED_CTA: true
+@RULE:TONE_STYLE: brand-appropriate, strong verbs, urgency
+@RULE:CONTENT_TYPE: strong hook, shocking moment
+@RULE:HASHTAG_TYPE: relevant, trending, algorithm-friendly
+@RULE:ENGAGEMENT_RULES: no clickbait, no engagement bait
+@RULE:ENGAGEMENT_TARGET: likes, comments, shares, subscriptions
+@RULE:MODEL_PREFERENCE: gemini-2.5-pro-preview-05-06
+@RULE:TEMPERATURE: 0.75
+@RULE:FALLBACK_MODEL: gpt-4.1-2025-04-14
+@RULE:MAX_RETRIES: 3
+@RULE:TOP_P: 0.92
+@RULE:TOP_K: 45
+"""
+
 PROMPT= """Role
 
 You are a YouTube Social Media Manager.

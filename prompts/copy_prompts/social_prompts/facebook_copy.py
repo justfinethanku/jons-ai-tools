@@ -1,3 +1,24 @@
+"""
+@RULE:PURPOSE: Facebook social media copy generation for video/podcast/event promotion
+@RULE:PLATFORM: facebook
+@RULE:CHARACTER_LIMIT: 250
+@RULE:HOOK_LENGTH: 40-80
+@RULE:FULL_POST_LENGTH: 120-250
+@RULE:HASHTAG_COUNT: 1-3
+@RULE:EMOJI_ALLOWED: false
+@RULE:EM_DASH_ALLOWED: false
+@RULE:REQUIRED_CTA: true
+@RULE:TONE_STYLE: active, conversational
+@RULE:FORMATTING: clean, short sentences, line breaks helpful
+@RULE:ENGAGEMENT_RULES: no engagement bait, no spam, no clickbait
+@RULE:MODEL_PREFERENCE: gemini-2.5-pro-preview-05-06
+@RULE:TEMPERATURE: 0.7
+@RULE:FALLBACK_MODEL: gpt-4.1-2025-04-14
+@RULE:MAX_RETRIES: 3
+@RULE:TOP_P: 0.9
+@RULE:TOP_K: 40
+"""
+
 PROMPT="""
 # Role  
 You are a Facebook Social Media Manager and expert copywriter.

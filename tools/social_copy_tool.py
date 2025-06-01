@@ -3,12 +3,20 @@ import os
 import importlib
 import google.generativeai as genai
 import openai
-from frameworks.universal_framework import outputs_to_txt_bytes
+from frameworks.universal_framework import outputs_to_txt_bytes, call_gemini_api, call_openai_api
+from frameworks.shared_utils import extract_string_rules
+from frameworks.logging_manager import get_logger
+from frameworks.tool_config import get_tool_config
 from prompts.client_add_ons.legacy_add_on import PROMPT as LEGACY_ADDON_PROMPT
 
+# Initialize logger and load tool configuration
+logger = get_logger("social_copy_tool")
+tool_config = get_tool_config("social_copy_tool")
+
 def load_all_prompts():
-    """Dynamically load all prompts from social_prompts folder"""
+    """Dynamically load all prompts and their rules from social_prompts folder"""
     prompts = {}
+    prompt_rules = {}
     base_path = "prompts.copy_prompts.social_prompts"
     
     # Get all .py files in the social_prompts directory
@@ -25,17 +33,129 @@ def load_all_prompts():
                         # Format platform name nicely (facebook_copy -> Facebook)
                         display_name = platform_name.replace('_copy', '').replace('_', ' ').title()
                         prompts[display_name] = module.PROMPT
+                        
+                        # Extract rules from the module file
+                        file_path = os.path.join(social_prompts_dir, filename)
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            file_content = f.read()
+                        
+                        success, rules = extract_string_rules(file_content)
+                        if success and rules:
+                            prompt_rules[display_name] = rules
+                            logger.info(f"Loaded rules for {display_name}", 
+                                      platform=display_name, rules_count=len(rules))
+                        else:
+                            prompt_rules[display_name] = {}
+                            
                 except ImportError as e:
                     st.error(f"Could not load {platform_name}: {e}")
+                except Exception as e:
+                    logger.error(f"Error loading rules for {platform_name}", error=str(e))
+                    
     except FileNotFoundError:
         st.error(f"Directory not found: {social_prompts_dir}")
     
-    return prompts
+    return prompts, prompt_rules
 
-def generate_copy_for_platform(prompt_template, user_input, client_data=None, legacy_advisors=False):
-    """Generate copy using AI"""
+def display_rule_summary(prompt_rules):
+    """Display a summary of rules being applied"""
+    if not prompt_rules:
+        return
+    
+    st.markdown("""
+        <div style="background: #1a1a1a; border: 2px solid #0f0; padding: 15px; margin: 20px 0;">
+            <p style="font-family: 'Courier New', monospace; color: #0f0; font-size: 20px; 
+                      text-align: center; margin: 0 0 15px 0;">
+                ⚙️ ACTIVE RULES ENGINE ⚙️
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([0.5, 2, 0.5])
+    with col2:
+        for platform_name, rules in prompt_rules.items():
+            if rules:
+                # Separate content rules from API rules
+                content_rules = {}
+                api_rules = {}
+                
+                for rule_name, rule_value in rules.items():
+                    if rule_name in ['MODEL_PREFERENCE', 'TEMPERATURE', 'FALLBACK_MODEL', 'MAX_RETRIES', 'TOP_P', 'TOP_K', 'MAX_TOKENS']:
+                        api_rules[rule_name] = rule_value
+                    else:
+                        content_rules[rule_name] = rule_value
+                
+                with st.expander(f"📋 {platform_name} Rules ({len(rules)} active)", expanded=False):
+                    
+                    if content_rules:
+                        st.markdown("**Content & Format Rules:**")
+                        for rule_name, rule_value in content_rules.items():
+                            if isinstance(rule_value, dict) and 'min' in rule_value and 'max' in rule_value:
+                                st.write(f"• **{rule_name}**: {rule_value['min']}-{rule_value['max']}")
+                            elif isinstance(rule_value, list):
+                                st.write(f"• **{rule_name}**: {', '.join(map(str, rule_value))}")
+                            else:
+                                st.write(f"• **{rule_name}**: {rule_value}")
+                    
+                    if api_rules:
+                        st.markdown("**API Configuration Rules:**")
+                        for rule_name, rule_value in api_rules.items():
+                            if rule_name == 'MODEL_PREFERENCE':
+                                st.write(f"🤖 **Primary Model**: {rule_value}")
+                            elif rule_name == 'FALLBACK_MODEL':
+                                st.write(f"🔄 **Fallback Model**: {rule_value}")
+                            elif rule_name == 'TEMPERATURE':
+                                st.write(f"🌡️ **Temperature**: {rule_value}")
+                            elif rule_name == 'MAX_RETRIES':
+                                st.write(f"🔁 **Max Retries**: {rule_value}")
+                            else:
+                                st.write(f"• **{rule_name}**: {rule_value}")
+
+def generate_copy_for_platform(prompt_template, user_input, platform_rules=None, client_data=None, legacy_advisors=False):
+    """Generate copy using AI with rule-based enhancement"""
     # Replace the placeholder in the prompt
     final_prompt = prompt_template.replace("{USER_INPUT}", user_input)
+    
+    # Extract and apply rules if available
+    if platform_rules:
+        logger.log_operation_start("rule_application", platform=platform_rules.get('PLATFORM', 'unknown'))
+        
+        # Add rule-based constraints to the prompt
+        rule_constraints = []
+        
+        if 'CHARACTER_LIMIT' in platform_rules:
+            rule_constraints.append(f"- STRICT CHARACTER LIMIT: {platform_rules['CHARACTER_LIMIT']} characters maximum")
+            
+        if 'HASHTAG_COUNT' in platform_rules:
+            hashtag_info = platform_rules['HASHTAG_COUNT']
+            if isinstance(hashtag_info, dict):
+                rule_constraints.append(f"- HASHTAGS: Use {hashtag_info['min']}-{hashtag_info['max']} hashtags")
+            else:
+                rule_constraints.append(f"- HASHTAGS: Use {hashtag_info} hashtags")
+                
+        if 'EMOJI_ALLOWED' in platform_rules and not platform_rules['EMOJI_ALLOWED']:
+            rule_constraints.append("- NO EMOJIS allowed")
+            
+        if 'EM_DASH_ALLOWED' in platform_rules and not platform_rules['EM_DASH_ALLOWED']:
+            rule_constraints.append("- NO EM-DASHES allowed")
+            
+        if 'REQUIRED_CTA' in platform_rules and platform_rules['REQUIRED_CTA']:
+            rule_constraints.append("- MUST include a clear call-to-action")
+            
+        if 'TONE_STYLE' in platform_rules:
+            rule_constraints.append(f"- TONE: {platform_rules['TONE_STYLE']}")
+            
+        if 'ENGAGEMENT_RULES' in platform_rules:
+            rule_constraints.append(f"- FORBIDDEN: {platform_rules['ENGAGEMENT_RULES']}")
+        
+        if rule_constraints:
+            constraints_text = "\n".join(rule_constraints)
+            final_prompt = f"""PLATFORM RULES (MUST BE FOLLOWED EXACTLY):
+{constraints_text}
+
+{final_prompt}
+
+REMINDER: Follow all platform rules above exactly. Character limits are strict."""
     
     # Add client context if available
     if client_data:
@@ -56,31 +176,35 @@ IMPORTANT: Follow the client's brand voice and tone exactly.
         final_prompt = final_prompt + "\n\n" + LEGACY_ADDON_PROMPT
     
     try:
-        # Try Gemini first
-        """
-        if st.secrets.get("GEMINI_API_KEY"):
-            genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-            model = genai.GenerativeModel('gemini-2.0-flash')  
-            response = model.generate_content(final_prompt) 
-            return response.text
-            """
+        # Use centralized configuration with platform rule overrides
+        model_preference = platform_rules.get('MODEL_PREFERENCE') if platform_rules else None
+        if not model_preference:
+            model_preference = tool_config.get('MODEL_PREFERENCE', 'gemini-1.5-flash')
         
-        # Fallback to OpenAI 
-        if st.secrets.get("openai", {}).get("OPENAI_API_KEY"):
-            client = openai.OpenAI(api_key=st.secrets["openai"]["OPENAI_API_KEY"])
-            response = client.chat.completions.create(
-                model="gpt-4.1-2025-04-14",
-                messages=[
-                    {"role": "system", "content": "You are an expert social media copywriter."},
-                    {"role": "user", "content": final_prompt}
-                ],
-            )
-            return response.choices[0].message.content
+        temperature = platform_rules.get('TEMPERATURE') if platform_rules else None
+        if temperature is None:
+            temperature = tool_config.get('TEMPERATURE', 0.7)
+            
+        fallback_model = platform_rules.get('FALLBACK_MODEL') if platform_rules else None
+        if not fallback_model:
+            fallback_model = tool_config.get('FALLBACK_MODEL', 'gpt-4')
         
-        else:
-            return "Error: No AI API key configured"
+        logger.info("Generating copy with rules", 
+                   model=model_preference, temperature=temperature, 
+                   rules_applied=len(platform_rules) if platform_rules else 0)
+        
+        # Try primary model first (using universal framework functions with rules)
+        if 'gemini' in model_preference.lower():
+            response = call_gemini_api(final_prompt, temperature=temperature, context_rules=platform_rules)
+            if not response.startswith('Error:'):
+                return response
+        
+        # Fallback to secondary model
+        response = call_openai_api(final_prompt, model=fallback_model, temperature=temperature, context_rules=platform_rules)
+        return response
             
     except Exception as e:
+        logger.error("Copy generation failed", error=str(e))
         return f"Error: {str(e)}"
 
 def run():
@@ -179,8 +303,8 @@ def run():
             user_input += notes
         
         if user_input.strip():
-            # Load prompts and generate
-            prompts = load_all_prompts()
+            # Load prompts and rules
+            prompts, prompt_rules = load_all_prompts()
             
             if not prompts:
                 st.error("No prompts found! Check your prompts/copy_prompts/social_prompts folder.")
@@ -207,7 +331,7 @@ def run():
                     </div>
                     <p style="font-family: 'Courier New', monospace; color: #0f0; font-size: 24px; 
                               text-align: center; animation: slide 2s infinite linear;">
-                        LOADING... PLEASE WAIT... DO NOT TURN OFF YOUR COMPUTER...
+                        LOADING RULE-ENHANCED COPY... PLEASE WAIT...
                     </p>
                     <div style="position: absolute; top: 20px; right: 20px; font-family: 'Courier New', monospace; 
                                 color: #ff0; font-size: 20px; animation: spin 2s infinite linear;">
@@ -236,12 +360,14 @@ def run():
                 </style>
             """, unsafe_allow_html=True)
             
-            with st.spinner("Generating copy for all platforms..."):
-                # Generate for each platform
+            with st.spinner("Generating rule-enhanced copy for all platforms..."):
+                # Generate for each platform with rules
                 for platform_name, prompt_template in prompts.items():
+                    platform_rule_set = prompt_rules.get(platform_name, {})
                     generated_copy = generate_copy_for_platform(
                         prompt_template, 
                         user_input, 
+                        platform_rule_set,
                         selected_client,
                         legacy_advisors
                     )
@@ -249,6 +375,9 @@ def run():
             
             # Clear the loading screen
             generating_placeholder.empty()
+            
+            # Display rule summary
+            display_rule_summary(prompt_rules)
             
             # Easter egg: Self-deprecating success messages
             import random

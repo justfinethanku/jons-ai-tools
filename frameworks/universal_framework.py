@@ -9,6 +9,7 @@ import traceback
 from typing import Dict, Any, Optional, Union, Tuple
 from frameworks.shared_utils import safe_json_parse, sanitize_text_for_notion
 from frameworks.logging_manager import get_logger
+from frameworks.api_config import get_api_config, validate_api_params, apply_retry_rules, log_api_configuration
 
 # Create structured logger
 logger = get_logger("universal_framework")
@@ -127,14 +128,16 @@ def universal_ui():
     # Client selection removed
     pass
 
-def call_openai_api(prompt: str, model: str = "gpt-4.1-2025-04-14", temperature: float = 1.0) -> str:
+def call_openai_api(prompt: str, model: str = "gpt-4.1-2025-04-14", temperature: float = 1.0, 
+                    context_rules: Optional[Dict[str, Any]] = None) -> str:
     """
-    Call the OpenAI API with comprehensive error handling.
+    Call the OpenAI API with rule-based configuration and comprehensive error handling.
     
     Args:
         prompt: The prompt to send to OpenAI
         model: The model to use. Defaults to "gpt-4.1-2025-04-14".
         temperature: Controls randomness in generation. Defaults to 1.0.
+        context_rules: Optional rules from calling context for parameter overrides
         
     Returns:
         The response from OpenAI or error message
@@ -143,12 +146,24 @@ def call_openai_api(prompt: str, model: str = "gpt-4.1-2025-04-14", temperature:
         from openai import OpenAI
         import time
         
-        # Validate inputs
+        # Get rule-based API configuration
+        api_config = get_api_config("openai", context_rules)
+        log_api_configuration("openai", api_config, "rule_based" if context_rules else "default")
+        
+        # Apply rule-based parameter overrides
+        effective_model = api_config.get('model', model)
+        effective_temperature = api_config.get('temperature', temperature)
+        max_tokens = api_config.get('max_tokens', api_config.get('MAX_TOKENS', 4096))
+        
+        # Validate inputs with rules
         if not prompt or not prompt.strip():
             raise ValueError("Prompt cannot be empty")
         
-        if not 0 <= temperature <= 2:
-            raise ValueError("Temperature must be between 0 and 2")
+        is_valid, error_msg = validate_api_params("openai", 
+                                                 temperature=effective_temperature,
+                                                 max_tokens=max_tokens)
+        if not is_valid:
+            raise ValueError(f"Parameter validation failed: {error_msg}")
         
         # Configure the client with error handling
         try:
@@ -159,21 +174,28 @@ def call_openai_api(prompt: str, model: str = "gpt-4.1-2025-04-14", temperature:
         except KeyError:
             raise ValueError("OpenAI configuration not found in secrets.toml")
         
-        # Make the API call with retry logic
-        max_retries = 3
-        for attempt in range(max_retries):
+        # Get retry configuration from rules
+        retry_config = apply_retry_rules(api_config)
+        logger.info("OpenAI API call starting",
+                   model=effective_model, 
+                   temperature=effective_temperature,
+                   max_retries=retry_config['max_retries'])
+        
+        # Make the API call with rule-based retry logic
+        for attempt in range(retry_config['max_retries']):
             try:
                 start_time = time.time()
                 
-                # Build parameters
+                # Build parameters with rule-based configuration
                 params = {
-                    "model": model,
-                    "messages": [{"role": "user", "content": prompt}]
+                    "model": effective_model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": max_tokens
                 }
                 
                 # Only add temperature if it's not the default
-                if temperature != 1.0:
-                    params["temperature"] = temperature
+                if effective_temperature != 1.0:
+                    params["temperature"] = effective_temperature
                 
                 response = client.chat.completions.create(**params)
                 
@@ -183,36 +205,44 @@ def call_openai_api(prompt: str, model: str = "gpt-4.1-2025-04-14", temperature:
                 if not response.choices or not response.choices[0].message.content:
                     raise ValueError("Empty response from OpenAI")
                 
-                logger.log_api_call("openai", model, status_code=200, duration_ms=duration_ms)
+                logger.log_api_call("openai", effective_model, status_code=200, duration_ms=duration_ms)
+                logger.log_operation_success("openai_api_call", duration_ms=duration_ms, 
+                                           model=effective_model, rules_applied=bool(context_rules))
                 return response.choices[0].message.content
                 
             except Exception as e:
                 if "rate_limit" in str(e).lower():
-                    if attempt < max_retries - 1:
-                        time.sleep(2 ** attempt)  # Exponential backoff 
+                    if attempt < retry_config['max_retries'] - 1:
+                        delay = retry_config['base_delay'] * (2 ** attempt)  # Rule-based exponential backoff
+                        logger.warning(f"Rate limit hit, retrying in {delay}s", attempt=attempt + 1)
+                        time.sleep(delay)
                         continue
                     raise
-                elif attempt < max_retries - 1:
-                    logger.error("OpenAI API error", attempt=attempt + 1, error=str(e), model=model)
-                    time.sleep(1)  # Brief pause before retry 
+                elif attempt < retry_config['max_retries'] - 1:
+                    logger.error("OpenAI API error", attempt=attempt + 1, error=str(e), model=effective_model)
+                    time.sleep(retry_config['base_delay'])  # Rule-based retry delay
                     continue
                 else:
                     raise
     
     except Exception as e:
         error_msg = f"OpenAI API error: {str(e)}"
-        logger.log_api_call("openai", model, status_code=500, error=str(e))
+        effective_model = api_config.get('model', model) if 'api_config' in locals() else model
+        logger.log_api_call("openai", effective_model, status_code=500, error=str(e))
+        logger.log_operation_failure("openai_api_call", str(e), model=effective_model)
         st.error(error_msg)
         return f"Error: Unable to get response from OpenAI. Please try again."
 
-def call_gemini_api(prompt: str, response_schema: Optional[Dict] = None, temperature: float = 0.2) -> str:
+def call_gemini_api(prompt: str, response_schema: Optional[Dict] = None, temperature: float = 0.2,
+                   context_rules: Optional[Dict[str, Any]] = None) -> str:
     """
-    Call Gemini API with comprehensive error handling and structured output support.   
+    Call Gemini API with rule-based configuration and comprehensive error handling.   
     
     Args:
         prompt: The prompt to send to Gemini
         response_schema: Schema for structured output  
         temperature: Controls randomness in generation
+        context_rules: Optional rules from calling context for parameter overrides
         
     Returns:
         The response from Gemini or error message
@@ -222,12 +252,27 @@ def call_gemini_api(prompt: str, response_schema: Optional[Dict] = None, tempera
         import json
         from google.api_core import exceptions
         
-        # Validate inputs
+        # Get rule-based API configuration
+        api_config = get_api_config("gemini", context_rules)
+        log_api_configuration("gemini", api_config, "rule_based" if context_rules else "default")
+        
+        # Apply rule-based parameter overrides
+        effective_model = api_config.get('model', api_config.get('DEFAULT_MODEL'))
+        effective_temperature = api_config.get('temperature', temperature)
+        top_p = api_config.get('top_p', api_config.get('TOP_P', 0.95))
+        top_k = api_config.get('top_k', api_config.get('TOP_K', 40))
+        max_output_tokens = api_config.get('max_output_tokens', api_config.get('MAX_OUTPUT_TOKENS', 4096))
+        
+        # Validate inputs with rules
         if not prompt or not prompt.strip():
             raise ValueError("Prompt cannot be empty")
         
-        if not 0 <= temperature <= 2:
-            raise ValueError("Temperature must be between 0 and 2")
+        is_valid, error_msg = validate_api_params("gemini", 
+                                                 temperature=effective_temperature,
+                                                 top_p=top_p,
+                                                 top_k=top_k)
+        if not is_valid:
+            raise ValueError(f"Parameter validation failed: {error_msg}")
         
         # Configure the Gemini API client with error handling
         try:
@@ -238,12 +283,12 @@ def call_gemini_api(prompt: str, response_schema: Optional[Dict] = None, tempera
         except KeyError:
             raise ValueError("Google configuration not found in secrets.toml")
         
-        # Create generation config
+        # Create rule-based generation config
         generation_config = {
-            "temperature": temperature,
-            "top_p": 0.95,
-            "top_k": 40,
-            "max_output_tokens": 4096,
+            "temperature": effective_temperature,
+            "top_p": top_p,
+            "top_k": top_k,
+            "max_output_tokens": max_output_tokens,
         }
         
         # Add response schema if provided
@@ -254,15 +299,21 @@ def call_gemini_api(prompt: str, response_schema: Optional[Dict] = None, tempera
         # Create the model with error handling
         try:
             model = genai.GenerativeModel(
-                model_name="gemini-2.5-pro-preview-05-06",
+                model_name=effective_model,
                 generation_config=generation_config
             )
         except Exception as e:
             raise ValueError(f"Failed to create Gemini model: {str(e)}")
         
-        # Generate content with retry logic
-        max_retries = 3
-        for attempt in range(max_retries):
+        # Get retry configuration from rules
+        retry_config = apply_retry_rules(api_config)
+        logger.info("Gemini API call starting",
+                   model=effective_model, 
+                   temperature=effective_temperature,
+                   max_retries=retry_config['max_retries'])
+        
+        # Generate content with rule-based retry logic
+        for attempt in range(retry_config['max_retries']):
             try:
                 import time
                 start_time = time.time()
@@ -275,7 +326,9 @@ def call_gemini_api(prompt: str, response_schema: Optional[Dict] = None, tempera
                 if not response or not hasattr(response, 'text'):
                     raise ValueError("Empty or invalid response from Gemini")
                 
-                logger.log_api_call("gemini", "gemini-2.5-pro-preview-05-06", status_code=200, duration_ms=duration_ms)
+                logger.log_api_call("gemini", effective_model, status_code=200, duration_ms=duration_ms)
+                logger.log_operation_success("gemini_api_call", duration_ms=duration_ms, 
+                                           model=effective_model, rules_applied=bool(context_rules))
                 
                 # Handle structured response
                 if response_schema and hasattr(response, 'candidates') and response.candidates:
@@ -298,19 +351,24 @@ def call_gemini_api(prompt: str, response_schema: Optional[Dict] = None, tempera
                     return response.text
                     
             except exceptions.ResourceExhausted:
-                if attempt < max_retries - 1:
+                if attempt < retry_config['max_retries'] - 1:
                     import time
-                    time.sleep(2 ** attempt)  # Exponential backoff
+                    delay = retry_config['base_delay'] * (2 ** attempt)  # Rule-based exponential backoff
+                    logger.warning(f"Rate limit hit, retrying in {delay}s", attempt=attempt + 1)
+                    time.sleep(delay)
                     continue
                 raise
             except exceptions.GoogleAPIError as e:
-                logger.error("Gemini API error", attempt=attempt + 1, error=str(e), model="gemini-2.0-flash")
-                if attempt < max_retries - 1:
+                logger.error("Gemini API error", attempt=attempt + 1, error=str(e), model=effective_model)
+                if attempt < retry_config['max_retries'] - 1:
+                    time.sleep(retry_config['base_delay'])  # Rule-based retry delay
                     continue
                 raise
     
     except Exception as e:
         error_msg = f"Gemini API error: {str(e)}"
-        logger.log_api_call("gemini", "gemini-2.0-flash", status_code=500, error=str(e))
+        effective_model = api_config.get('model', api_config.get('DEFAULT_MODEL')) if 'api_config' in locals() else "gemini-2.0-flash"
+        logger.log_api_call("gemini", effective_model, status_code=500, error=str(e))
+        logger.log_operation_failure("gemini_api_call", str(e), model=effective_model)
         st.error(error_msg)
         return f"Error: Unable to get response from Gemini. Please try again."

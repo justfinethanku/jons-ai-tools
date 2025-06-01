@@ -1,7 +1,14 @@
 """
-refiner_framework 
+@RULE:PURPOSE: Unified refiner framework for rule-based tool execution
+@RULE:DEPENDENCIES: unified_tool_manager, shared_utils, logging_manager
+@RULE:INTERFACE: run_refiner
+@RULE:NO_CROSS_TALK: individual tool implementations
 """
 import streamlit as st
+from frameworks.unified_tool_manager import get_unified_tool_manager, execute_unified_tool_function
+from frameworks.logging_manager import get_logger
+
+logger = get_logger("refiner_framework")
 
 # Reduce sidebar width for the refiner framework
 st.markdown(
@@ -19,19 +26,61 @@ st.markdown(
 
 def run_refiner(
     tool_name,
-    refine_func,
-    meta_prompt,
-    sidebar_info,
+    refine_func=None,  # Now optional - will use unified system if None
+    meta_prompt=None,  # Now optional - will load from config if None
+    sidebar_info=None, # Now optional - will load from config if None
     rough_prompt_label="Rough Prompt",
     output_height=160,
 ):
-    # Optional: Tool-specific sidebar/help
-    sidebar_info()
+    logger.log_operation_start("run_refiner", tool=tool_name)
+    
+    # Get unified tool manager and load tool if needed
+    tool_manager = get_unified_tool_manager()
+    
+    # Try to get tool instance from unified system
+    tool_instance = tool_manager.get_tool(tool_name.lower().replace(' ', '_'))
+    if not tool_instance:
+        # If tool not found, try to load all tools
+        tool_manager.load_all_tools()
+        tool_instance = tool_manager.get_tool(tool_name.lower().replace(' ', '_'))
+    
+    # Get tool configuration if available
+    tool_config = None
+    if tool_instance:
+        tool_config = tool_instance['config']
+        logger.info("Using unified tool configuration", tool=tool_name)
+    else:
+        logger.warning("Tool not found in unified system, using legacy mode", tool=tool_name)
+
+    # Load sidebar info from config or use provided function
+    if tool_config:
+        config_rules = tool_config.config_rules
+        
+        # Display sidebar info from configuration
+        with st.sidebar.expander("About this tool", expanded=True):
+            sidebar_text = config_rules.get('SIDEBAR_INFO', f'Tool: {tool_name}')
+            st.write(sidebar_text)
+        
+        with st.sidebar.expander("How to use"):
+            help_text = config_rules.get('HELP_TEXT', f'1. Enter your prompt\n2. Click refine\n3. Review results')
+            st.write(help_text)
+        
+        # Use config values for UI
+        input_height = config_rules.get('INPUT_HEIGHT', 120)
+        output_height = config_rules.get('OUTPUT_HEIGHT', output_height)
+        button_text = config_rules.get('BUTTON_TEXT', 'Refine Prompt')
+        
+    else:
+        # Fallback to provided sidebar function
+        if sidebar_info:
+            sidebar_info()
+        input_height = 120
+        button_text = 'Refine Prompt'
 
     st.header(tool_name)
-    rough_prompt = st.text_area(rough_prompt_label, height=120)
+    rough_prompt = st.text_area(rough_prompt_label, height=input_height)
 
-    refine_clicked = st.button("Refine Prompt", key="refine_inside_tool")
+    refine_clicked = st.button(button_text, key="refine_inside_tool")
 
     # Initialize session state for prompt history
     if "refined" not in st.session_state:
@@ -43,7 +92,13 @@ def run_refiner(
 
     # Handle initial refinement
     if refine_clicked and rough_prompt.strip():
-        refined = refine_func(rough_prompt, meta_prompt)
+        if tool_instance:
+            # Use unified tool system
+            refined = execute_unified_tool_function(tool_name.lower().replace(' ', '_'), 'refine', rough_prompt)
+        else:
+            # Fallback to legacy function
+            refined = refine_func(rough_prompt, meta_prompt)
+        
         st.session_state["refined"] = refined
         st.session_state["revision_history"] = [refined]  # Start fresh history
 
@@ -94,10 +149,19 @@ def run_refiner(
 
         # Handle revision
         if revise_clicked and revision_request.strip():
-            # Import the revise function using shared utilities to avoid circular imports
-            import tools.prompt_refiner as prompt_refiner
+            if tool_instance and tool_config.config_rules.get('ENABLE_REVISIONS', True):
+                # Use unified tool system
+                revised = execute_unified_tool_function(
+                    tool_name.lower().replace(' ', '_'), 
+                    'revise', 
+                    st.session_state["refined"], 
+                    revision_request
+                )
+            else:
+                # Fallback to legacy revision system
+                import tools.prompt_refiner as prompt_refiner
+                revised = prompt_refiner.revise_prompt(st.session_state["refined"], revision_request)
             
-            revised = prompt_refiner.revise_prompt(st.session_state["refined"], revision_request)
             st.session_state["refined"] = revised
             st.session_state["revision_history"].append(revised)
             

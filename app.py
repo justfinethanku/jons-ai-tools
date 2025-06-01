@@ -1,10 +1,22 @@
 import streamlit as st
 from frameworks.universal_framework import home_button
 from frameworks.refiner_framework import run_refiner
-import tools.prompt_refiner as prompt_refiner
-import tools.coder_helper as coder_helper
+from frameworks.unified_tool_manager import load_all_tools, get_unified_tool_manager
+from frameworks.logging_manager import get_logger
 from tools import social_copy_tool
 import time
+
+# Initialize logger and load all tools at startup
+logger = get_logger("app")
+tool_manager = get_unified_tool_manager()
+
+# Load all unified tools at app startup
+if 'tools_loaded' not in st.session_state:
+    logger.info("Loading unified tools at app startup")
+    loaded_tools = load_all_tools()
+    st.session_state['tools_loaded'] = True
+    st.session_state['available_tools'] = list(loaded_tools.keys())
+    logger.info(f"Loaded {len(loaded_tools)} unified tools", tools=list(loaded_tools.keys()))
 
 # Initialize session state
 if "tool" not in st.session_state:
@@ -192,24 +204,22 @@ if st.session_state.tool == "home":
             st.session_state["show_copy_warning"] = True
             st.rerun()
 
-if st.session_state.tool == "Prompt Refiner":
-    run_refiner(
-        tool_name="Prompt Refiner",
-        refine_func=prompt_refiner.refine_prompt,
-        meta_prompt=prompt_refiner.META_PROMPT,
-        sidebar_info=prompt_refiner.sidebar_info,
-    )
-
-if st.session_state.tool == "Coder Helper":
-    run_refiner(
-        tool_name="Coder Helper",
-        refine_func=coder_helper.refine_prompt,
-        meta_prompt=coder_helper.META_PROMPT,
-        sidebar_info=coder_helper.sidebar_info,
-    )
-
-if st.session_state.tool == "Copy Generator":
+# Use unified tool management for dynamic tool routing
+if st.session_state.tool in ["Prompt Refiner", "Coder Helper"]:
+    run_refiner(tool_name=st.session_state.tool)
+elif st.session_state.tool == "Copy Generator":
     social_copy_tool.run()
+elif st.session_state.tool in st.session_state.get('available_tools', []):
+    # Dynamic tool execution through unified manager
+    try:
+        tool_instance = tool_manager.get_tool(st.session_state.tool)
+        if tool_instance and hasattr(tool_instance, 'run'):
+            tool_instance.run()
+        else:
+            st.error(f"Tool '{st.session_state.tool}' does not have a run method")
+    except Exception as e:
+        logger.error(f"Error running tool {st.session_state.tool}", error=str(e))
+        st.error(f"Error running {st.session_state.tool}: {str(e)}")
 
 # Easter egg: Secret button
 st.markdown("---")

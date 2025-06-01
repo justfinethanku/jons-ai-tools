@@ -1,7 +1,11 @@
 import os
 from prompts.meta_prompts.the_prompt_prompt import PROMPT as META_PROMPT
-import google.generativeai as genai
+from frameworks.universal_framework import call_gemini_api
+from frameworks.tool_config import get_tool_config
 import streamlit as st
+
+# Load tool configuration
+tool_config = get_tool_config("prompt_refiner")
 
 def sidebar_info():
     with st.sidebar.expander("About this tool", expanded=True):
@@ -18,11 +22,19 @@ def sidebar_info():
         )
 
 def refine_prompt(rough_prompt, meta_prompt):
-    """Initial prompt refinement"""
-    genai.configure(api_key=st.secrets["google"]["GEMINI_API_KEY"])
-    model = genai.GenerativeModel("gemini-2.5-flash-preview-05-20")
-    response = model.generate_content(f"{meta_prompt}\n\n[ {rough_prompt} ]")
-    return response.text.strip()
+    """Initial prompt refinement with centralized configuration"""
+    # Use centralized configuration instead of hardcoded values
+    refiner_rules = {
+        'MODEL_PREFERENCE': tool_config.get('MODEL_PREFERENCE', 'gemini-2.5-pro-preview-05-06'),
+        'TEMPERATURE': tool_config.get('TEMPERATURE', 0.3),
+        'MAX_RETRIES': tool_config.get('MAX_RETRIES', 3),
+        'TOP_P': tool_config.get('TOP_P', 0.9),
+        'TOP_K': tool_config.get('TOP_K', 40)
+    }
+    
+    final_prompt = f"{meta_prompt}\n\n[ {rough_prompt} ]"
+    response = call_gemini_api(final_prompt, context_rules=refiner_rules)
+    return response.strip() if response and not response.startswith('Error:') else response
 
 # Custom revision prompt - much more efficient
 REVISION_PROMPT = """
@@ -47,16 +59,23 @@ REVISED PROMPT:
 """
 
 def revise_prompt(current_prompt, revision_request):
-    """Revise an existing prompt based on user feedback"""
+    """Revise an existing prompt based on user feedback with centralized configuration"""
+    # Use centralized configuration with revision-specific overrides
+    revision_rules = {
+        'MODEL_PREFERENCE': tool_config.get('MODEL_PREFERENCE', 'gemini-2.5-pro-preview-05-06'),
+        'TEMPERATURE': tool_config.get('REVISION_TEMPERATURE', 0.5),
+        'MAX_RETRIES': tool_config.get('REVISION_MAX_RETRIES', 2),
+        'TOP_P': tool_config.get('REVISION_TOP_P', 0.95),
+        'TOP_K': tool_config.get('REVISION_TOP_K', 50)
+    }
+    
     prompt = REVISION_PROMPT.format(
         current_prompt=current_prompt,
         revision_request=revision_request
     )
     
-    genai.configure(api_key=st.secrets["google"]["GEMINI_API_KEY"])
-    model = genai.GenerativeModel("gemini-1.5-flash")  # Use faster model for revisions
-    response = model.generate_content(prompt)
-    return response.text.strip()
+    response = call_gemini_api(prompt, context_rules=revision_rules)
+    return response.strip() if response and not response.startswith('Error:') else response
 
 # Remove unused functions
 def explain_prompt(refined_prompt, explainer_prompt):

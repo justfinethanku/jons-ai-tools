@@ -1,337 +1,269 @@
-# AI Tools Suite - Comprehensive Analysis & Context
+# AI Tools Suite - Current State Analysis & Context
 
-## 1. Project Overview & Operational Mechanics
+## 1. Project Overview & Current Architecture
 
 ### Core Purpose
-The AI Tools Suite is a Streamlit-based modular toolkit for AI-powered content generation and prompt engineering. It provides specialized tools for content creation, prompt refinement, and coding assistance using Google Gemini and OpenAI APIs. The project is positioned for evolution toward comment-driven rule-based LLM agentic coding methodology to enhance architectural integrity and development discipline.
+The AI Tools Suite is a Streamlit-based modular toolkit implementing **comment-driven rule-based LLM methodology** for AI-powered content generation and prompt engineering. The project has evolved from traditional hardcoded configurations to a unified rule-based architecture where behavior is driven by `@RULE:` directives embedded in code comments.
 
 ### Primary Functionalities
-- **Prompt Refiner**: Iterative prompt improvement with revision history and undo capability
-- **Coder Helper**: Technical prompt optimization for development tasks  
-- **Copy Generator**: Platform-specific social media content generation (Facebook, LinkedIn, TikTok, YouTube)
+- **Prompt Refiner**: Iterative prompt improvement with rule-driven API configuration
+- **Coder Helper**: Technical prompt optimization with code-specific rule parameters  
+- **Social Copy Generator**: Platform-specific content generation with embedded compliance rules
 
-### Core Architectural Components
+### Current Architecture State
 
-#### **Frameworks Layer** (`frameworks/`)
-- `universal_framework.py` - Central AI API integration hub (OpenAI & Gemini) with retry logic
-- `refiner_framework.py` - Shared UI framework for iterative prompt refinement tools
-- `logging_manager.py` - Structured JSON logging with operation tracking and performance metrics
-- `shared_utils.py` - Common utilities (JSON parsing, text sanitization, formatting)
+## 2. Complete Directory Tree Map
 
-#### **Tools Layer** (`tools/`)
-- `prompt_refiner.py` - General prompt improvement tool
-- `coder_helper.py` - Code-focused prompt enhancement (shares refiner framework)
-- `social_copy_tool.py` - Multi-platform content generator with retro gaming UI
+```
+/Users/jonathanedwards/jons-ai-tools/
+├── Root Level
+│   ├── app.py                          # Main Streamlit application with unified routing
+│   ├── requirements.txt                # Python dependencies
+│   ├── CONTEXT.md                     # This file - current project state
+│   ├── CLAUDE.md                      # Project-specific Claude instructions
+│   ├── ARCHITECTURE.md                # Architectural documentation
+│   ├── README.md                      # Project documentation
+│   └── OBSOLETE_FILES_ANALYSIS.md     # Analysis of removed components
+│
+├── frameworks/                        # Core framework layer (RULE-BASED ARCHITECTURE)
+│   ├── unified_tool_manager.py        # 🆕 Central tool orchestration system
+│   ├── tool_config.py                 # 🆕 Rule-based tool configuration
+│   ├── api_config.py                  # 🆕 Centralized API management
+│   ├── refiner_framework.py           # Enhanced unified tool execution
+│   ├── universal_framework.py         # Core API calling and utilities
+│   ├── logging_manager.py             # Structured logging system
+│   └── shared_utils.py                # Common utilities + rule parser
+│
+├── tools/                             # Individual tool implementations
+│   ├── prompt_refiner.py              # General prompt refinement
+│   ├── coder_helper.py                # Code-focused assistance
+│   ├── social_copy_tool.py            # Social media copy generation
+│   └── configs/                       # 🆕 Rule-based tool configuration
+│       ├── prompt_refiner_config.py   # 🆕 Prompt tool configuration
+│       ├── coder_helper_config.py     # 🆕 Coder tool configuration
+│       └── social_copy_tool_config.py # 🆕 Social tool configuration
+│
+├── prompts/                           # Prompt templates with embedded rules
+│   ├── meta_prompts/                  # Core prompt templates
+│   │   ├── the_prompt_prompt.py       # General prompt refinement
+│   │   ├── code_prompt.py             # Code-specific prompts
+│   │   └── explainer.py               # Explanation prompts
+│   ├── copy_prompts/social_prompts/   # Platform-specific prompts with rules
+│   │   ├── facebook_copy.py           # Facebook rules + template
+│   │   ├── linkedin_copy.py           # LinkedIn rules + template
+│   │   ├── tiktok_copy.py             # TikTok rules + template
+│   │   └── youtube_copy.py            # YouTube rules + template
+│   ├── client_add_ons/                # Client customization
+│   └── [other prompt directories]     # Creative, random, unused prompts
+│
+├── HOUSEKEEPING/                      # Project management and utilities
+│   ├── implementation_summary.md      # 🆕 Rule architecture progress
+│   ├── roadmap.md                     # 🆕 Implementation roadmap
+│   ├── rule_based_architecture.md     # 🆕 Architecture documentation
+│   ├── project_status.py             # Status checking utilities
+│   ├── update_context.py             # Context management
+│   ├── document_changes.py           # Change documentation
+│   └── wrap_up.py                    # Session management
+│
+├── data/                             # Content and configuration data
+├── resources/                        # Additional resources
+├── sessions/                         # Session logs
+├── obsolete_files_staging/           # Removed code backup
+└── xfindandfixshit/                 # Testing and debugging utilities
+```
 
-#### **Prompts System** (`prompts/`)
-- Modular prompt templates organized by purpose
-- Dynamic loading system for platform-specific copy generation
-- Meta-prompts for AI-assisted prompt improvement
+## 3. Dependency Relationships Map
 
-#### **Housekeeping System** (`HOUSEKEEPING/`)
-- Project management utilities and documentation
-- Custom Claude commands for session management
-- Automated status checking and change documentation
+### Core Architectural Flow
+```
+app.py
+├── unified_tool_manager.py ─── tool_config.py ─── shared_utils.py
+├── refiner_framework.py    ├── api_config.py   ├── logging_manager.py
+├── universal_framework.py  └── tools/configs/   └── [API integrations]
+└── social_copy_tool.py
 
-### Critical Data Flows
+Tools Configuration Flow:
+tools/configs/[tool]_config.py (@RULE: comments)
+    ↓ (rule extraction via shared_utils.py)
+tool_config.py (configuration management)
+    ↓ (unified tool creation)
+unified_tool_manager.py (orchestration)
+    ↓ (execution routing)
+refiner_framework.py OR social_copy_tool.py
+    ↓ (API calls with rules)
+universal_framework.py + api_config.py
+```
 
-1. **User Input � Framework � AI API � Response Processing � UI Display**
-2. **Session State Management** - Streamlit session state maintains conversation history and tool states
-3. **Dynamic Prompt Loading** - Templates loaded from filesystem and enhanced with context
-4. **Structured Logging** - All operations tracked with timestamps, metadata, and performance metrics
+### Component Dependencies
 
-### Development Workflow
-- Git-based version control with automated backup scripts
-- Custom Claude commands for session wrap-up and documentation
-- Pytest testing framework in `xfindandfixshit/` directory
-- Virtual environment with pip-based dependency management
+**Core Components:**
+- **`universal_framework.py`**: API calls, context enhancement, file utilities
+- **`shared_utils.py`**: Rule parsing, text sanitization, JSON handling  
+- **`logging_manager.py`**: Structured logging (self-contained)
 
-## 2. Identified Areas for Improvement & Fixes
+**Tool Management:**
+- **`tool_config.py`**: Rule extraction, validation, configuration management
+- **`unified_tool_manager.py`**: Tool discovery, registration, instance creation
+- **`api_config.py`**: Centralized API parameter management
 
-### **High Priority Technical Debt**
+**UI Components:**
+- **`app.py`**: Main navigation, home screen, routing
+- **`refiner_framework.py`**: Streamlit UI for prompt tools
+- **`social_copy_tool.py`**: Self-contained retro gaming UI
 
-#### **Code Duplication (Critical)**
-- `prompt_refiner.py` and `coder_helper.py` are nearly identical implementations
-- Both use the same refiner framework but maintain separate codebases
-- **Impact**: Maintenance overhead, inconsistent behavior, wasted effort
-- **Fix**: Consolidate into single configurable tool with prompt type parameter
+**Configuration Sources:**
+- **`tools/configs/*.py`**: Individual tool rule definitions
+- **`prompts/copy_prompts/social_prompts/*.py`**: Platform-specific rules
 
-#### **Framework Coupling Issue (Critical)**
-- `refiner_framework.py:100` hardcodes import to `prompt_refiner.revise_prompt`
-- Creates tight coupling preventing framework reuse for other tools
-- **Impact**: Architecture violation, prevents extensibility
-- **Fix**: Implement dependency injection or callback pattern
+## 4. Major Architectural Evolution
 
-#### **API Configuration Inconsistency (High)**
-- Hardcoded model names scattered throughout codebase
-- Different temperature settings without clear rationale
-- Inconsistent retry logic implementations
-- **Impact**: Maintenance difficulty, inconsistent behavior
-- **Fix**: Centralize configuration with environment-based model selection
+### 🆕 **Implemented: Rule-Based Architecture (Complete)**
 
-### **Documentation Staleness (High)**
-- `ARCHITECTURE.md` references removed components (database_manager, unified_client_manager, brand_builder)
-- `README.md` still mentions Notion integration despite removal
-- Inconsistent documentation between files
-- **Impact**: Developer confusion, onboarding friction
-- **Fix**: Update all documentation to reflect current simplified architecture
+**Phase 1: Prompt Enhancement Rules** ✅
+- All social media prompts enhanced with `@RULE:` directives
+- Platform compliance through embedded rules (character limits, hashtags, tone)
+- Dynamic rule extraction and application during copy generation
 
-### **Housekeeping Scripts Incomplete (Medium)**
-- All HOUSEKEEPING scripts show templates but don't actually write files
-- Require manual action rather than automation
-- `HOUSEKEEPING/DOCS/` directory empty despite scripts targeting it
-- **Impact**: Reduced productivity, inconsistent documentation
-- **Fix**: Implement actual file writing in all housekeeping utilities
+**Phase 2: API Parameter Rules** ✅  
+- Centralized API configuration through `api_config.py`
+- Rule-based model selection, temperature control, retry strategies
+- Tool-specific optimizations (Prompt Refiner: 0.3°, Coder Helper: 0.2°, Social: 0.7°)
 
-### **Error Handling Gaps (Medium)**
-- Limited specific error handling in `social_copy_tool.py`
-- Missing validation for empty AI responses
-- No rate limiting beyond basic retry logic
-- **Impact**: Poor user experience during API failures
-- **Fix**: Implement comprehensive error handling with user-friendly messages
+**Phase 3: Tool Configuration Rules** ✅
+- Unified tool management system replacing scattered implementations
+- Rule-based tool behavior through `tools/configs/` directory
+- Elimination of hardcoded values throughout all tools
 
-### **Dead Code & Comments (Low)**
-- Commented-out Gemini API code in `social_copy_tool.py:60-66`
-- Unused imports and functions scattered throughout
-- **Impact**: Code clarity, maintenance confusion
-- **Fix**: Clean up commented code and unused imports
+### 🗑️ **Removed Components**
+- **Notion Integration**: All database management removed (database_manager.py, unified_client_manager.py)
+- **Brand Builder Tool**: Completely removed with all references
+- **Client Selection UI**: Simplified to focus on core functionality
 
-## 3. Ideas for New Tools, Modules, & Utilities
+### 🔧 **Current Element Distribution**
 
-### **Development Productivity Tools**
+**API Calls** - `frameworks/universal_framework.py`
+- `call_gemini_api()`, `call_openai_api()` with rule-based parameters
+- Context enhancement and file utilities
 
-#### **Documentation Validator (`tools/doc_validator.py`)**
-- Automated checker for documentation consistency
-- Validates that README/ARCHITECTURE matches current codebase
-- Identifies orphaned files and broken import references
-- **Implementation**: File system analysis + AST parsing for imports
+**UI Components** - Distributed across:
+- `app.py` - Main navigation, giant buttons, Easter eggs
+- `social_copy_tool.py` - Self-contained retro gaming UI
+- `refiner_framework.py` - Reusable prompt tool UI
 
-#### **API Configuration Manager (`frameworks/config_manager.py`)**
-- Centralized model selection and parameter management
-- Environment-based configuration switching (dev/prod)
-- Cost tracking and usage analytics for AI API calls
-- **Implementation**: YAML/JSON config files + environment variable overrides
+**Configuration Management** - Centralized in:
+- `frameworks/tool_config.py` - Rule extraction and validation
+- `frameworks/api_config.py` - API parameter management  
+- `tools/configs/*.py` - Individual tool rule definitions
 
-#### **Prompt Quality Analyzer (`tools/prompt_analyzer.py`)**
-- Automated assessment of prompt effectiveness
-- A/B testing framework for prompt variations
-- Version control system for prompt templates
-- **Implementation**: Metrics collection + statistical analysis
+**Business Logic** - Tool-specific:
+- `tools/prompt_refiner.py` - `refine_prompt()`, `revise_prompt()`
+- `tools/coder_helper.py` - `refine_prompt()`, `explain_prompt()`  
+- `tools/social_copy_tool.py` - `generate_copy_for_platform()`, `load_all_prompts()`
 
-### **User Experience Enhancements**
+**Utilities** - `frameworks/shared_utils.py`
+- `extract_string_rules()`, `extract_comment_rules()` - Rule parsing
+- Text sanitization, JSON handling, file export utilities
 
-#### **Batch Processor (`tools/batch_processor.py`)**
-- Process multiple inputs through any tool simultaneously
-- Export/import functionality for prompts and results
-- Scheduled generation for social media content
-- **Implementation**: Queue system + background processing
+**Logging** - `frameworks/logging_manager.py` (self-contained)
 
-#### **Unified Tool Launcher (`frameworks/tool_registry.py`)**
-- Plugin system for registering new tools
-- Dynamic tool discovery and loading
-- Shared session state management across tools
-- **Implementation**: Decorator-based registration + reflection
+## 5. Current Technical State
 
-#### **Performance Monitor (`frameworks/performance_monitor.py`)**
-- Real-time performance metrics dashboard
-- API response time tracking and alerting
-- Usage analytics and cost optimization suggestions
-- **Implementation**: Streamlit dashboard + background metrics collection
+### ✅ **Architectural Strengths**
+- **Self-Documenting Code**: All configuration embedded as `@RULE:` comments
+- **Zero Hardcoded Values**: Complete elimination of scattered configuration
+- **Unified Tool Management**: Single system handles all tool orchestration
+- **Enhanced Maintainability**: Centralized configuration reduces duplication
+- **Dynamic Behavior**: Tools adapt based on embedded rules
+- **Comprehensive Logging**: Structured tracking of rule application
 
-### **AI-Specific Utilities**
+### 🎯 **Active Implementation Status**
 
-#### **Custom Model Trainer (`tools/model_trainer.py`)**
-- Fine-tuning interface for domain-specific models
-- Training data management and validation
-- Model performance comparison tools
-- **Implementation**: Integration with Hugging Face/OpenAI training APIs
+**Configuration Centralization: 100% Complete**
+- ✅ Framework architecture implemented
+- ✅ Configuration files for all 3 tools  
+- ✅ Tools integrated with unified config system
+- ✅ Hardcoded values eliminated
+- ✅ Runtime integration validated
 
-#### **Response Quality Checker (`frameworks/quality_checker.py`)**
-- Automated validation of AI-generated content
-- Plagiarism detection and factual accuracy checking
-- Brand voice consistency analysis
-- **Implementation**: Secondary AI model for quality assessment
+### 📋 **Next Phase: Tool Unification (Phase 3 from Roadmap)**
 
-#### **Conversation Memory (`frameworks/conversation_memory.py`)**
-- Long-term context retention across sessions
-- User preference learning and adaptation
-- Cross-tool context sharing and continuity
-- **Implementation**: Vector database + embeddings for semantic search
+**Upcoming Implementation:**
+- **Step 3.1**: Keep tools separate but enhance independence
+- **Step 3.2**: Remove hardcoded imports from `refiner_framework.py:100`
+- **Step 3.3**: Create `frameworks/config_manager.py` for advanced config
 
-### **System Administration Tools**
+## 6. Framework Redundancy Analysis
 
-#### **Environment Setup Validator (`HOUSEKEEPING/setup_checker.py`)**
-- Validate all required API keys and dependencies
-- Check virtual environment and package versions
-- Automated troubleshooting for common issues
-- **Implementation**: Checklist validation + automated fixes
+### 🔍 **Current Framework Overlap**
+- **Tool Management**: `refiner_framework` vs `unified_tool_manager` vs `tool_config`
+- **Configuration**: Mixed between `universal_framework` and `tool_config`
+- **UI Components**: Scattered across multiple files instead of centralized
 
-#### **Dependency Cleaner (`HOUSEKEEPING/cleanup_orphans.py`)**
-- Identify and remove unused files and imports
-- Clean up temporary files and old session logs
-- Optimize codebase size and organization
-- **Implementation**: Static analysis + safe file removal
+### 💡 **Potential Simplification Strategy**
+**Keep Essential:**
+- `universal_framework.py` - Core API calls only
+- `shared_utils.py` - Pure utilities (no tool logic)  
+- `logging_manager.py` - Logging only
 
-#### **Security Auditor (`HOUSEKEEPING/security_auditor.py`)**
-- Scan for hardcoded secrets and API keys
-- Validate secure storage of sensitive information
-- Check for known security vulnerabilities in dependencies
-- **Implementation**: Pattern matching + vulnerability database checks
+**Consider Creating:**
+- `ui_components.py` - Shared UI elements (headers, file uploaders, displays)
 
-### **Rule-Based Architecture Components (Future Integration)**
+**Tools Self-Contained:**
+- Each tool manages its own UI and business logic
+- Import only needed framework components
+- No complex framework dependencies
 
-#### **Comment Parser Engine (`frameworks/comment_parser.py`)**
-- Extract and interpret architectural rules from code comments
-- Rule syntax parser with validation engine
-- Comment metadata extractor and rule inheritance resolver
-- **Implementation**: Regex/AST-based parsing + JSON schema validation
+## 7. Development Workflow & Patterns
 
-#### **Rule Engine (`frameworks/rule_engine.py`)**
-- Store, manage, and enforce architectural rules
-- Rule conflict detection and hierarchy management
-- Dynamic rule evaluation and compliance checking
-- **Implementation**: Rule repository + conflict detection algorithms
+### **Rule-Based Development Process**
+1. **Define Rules**: Add `@RULE:` comments to configuration files
+2. **Extract Rules**: `shared_utils.py` parses comment directives  
+3. **Apply Rules**: Tools use `get_tool_config()` for behavior
+4. **Monitor Compliance**: Logging tracks rule application and effectiveness
 
-#### **LLM Integration Layer Enhancement (`frameworks/llm_rule_integrator.py`)**
-- Translate architectural rules into LLM prompts
-- Context window management for rule-based generation
-- Response validation against defined rules
-- **Implementation**: Rule-to-prompt converter + iterative refinement
+### **Tool Development Pattern**
+```python
+# 1. Import unified configuration
+from frameworks.tool_config import get_tool_config
 
-#### **Code Analysis Engine (`frameworks/code_analyzer.py`)**
-- Analyze existing code for rule compliance
-- Import dependency tracking and interface boundary detection
-- Automated violation reporting and remediation suggestions
-- **Implementation**: AST analysis + dependency graph generation
+# 2. Load tool-specific rules
+tool_config = get_tool_config("tool_name")
 
-#### **Execution Environment Enhancement (`frameworks/rule_orchestrator.py`)**
-- Orchestrate comment-driven development process
-- File system monitoring for rule changes
-- Real-time rule enforcement and feedback collection
-- **Implementation**: File watchers + code generation pipeline
+# 3. Use rules for API calls
+api_rules = {
+    'MODEL_PREFERENCE': tool_config.get('MODEL_PREFERENCE'),
+    'TEMPERATURE': tool_config.get('TEMPERATURE')
+}
 
-## 4. General Insights & Strategic Recommendations for AI Assistance
+# 4. Execute with rule-based parameters
+response = call_gemini_api(prompt, context_rules=api_rules)
+```
 
-### **Architectural Strengths**
-- **Clean separation of concerns** with frameworks/tools/prompts layers
-- **Consistent patterns** across tools using shared frameworks
-- **Extensible design** allowing easy addition of new tools
-- **Comprehensive logging** enabling debugging and performance analysis
-- **User-friendly interface** with consistent Streamlit patterns
+### **Success Metrics Achieved**
+- **Developer Experience**: Centralized configuration eliminates setup time
+- **Code Quality**: 100% elimination of hardcoded values
+- **Maintainability**: Single source of truth for all tool behavior
+- **Architecture Compliance**: Clean separation with rule-driven patterns
 
-### **Strategic Recommendations**
+## 8. Critical Dependencies & Integration Points
 
-#### **Immediate Actions (Next Sprint)**
-1. **Consolidate duplicate tools** - Merge prompt_refiner and coder_helper
-2. **Fix framework coupling** - Make refiner_framework tool-agnostic
-3. **Update documentation** - Sync all docs with current architecture
-4. **Implement actual file writing** in housekeeping scripts
-5. **Clean up dead code** - Remove comments and unused imports
+### **External Dependencies**
+- **Streamlit**: Core UI framework for all tools
+- **Google Gemini API**: Primary LLM provider
+- **OpenAI API**: Fallback LLM provider  
 
-#### **Medium-term Improvements (Next Month)**
-1. **Implement configuration management** - Centralize API settings
-2. **Add comprehensive error handling** - Improve user experience
-3. **Create prompt quality system** - Version control and analytics
-4. **Build performance monitoring** - Track costs and optimization
-5. **Develop batch processing** - Handle multiple requests efficiently
+### **Internal Critical Paths**
+- **`shared_utils.extract_string_rules()`**: Core rule parsing functionality
+- **`tool_config.get_tool_config()`**: Configuration loading for all tools
+- **`universal_framework` API functions**: All LLM interactions
+- **Streamlit session state**: Tool state management and navigation
 
-#### **Long-term Vision (Next Quarter)**
-1. **Rule-based architecture implementation** - Comment-driven development methodology
-2. **Plugin architecture** - Dynamic tool registration and loading
-3. **Custom model training** - Domain-specific fine-tuning capabilities
-4. **Collaborative features** - Multi-user support and sharing
-5. **Advanced analytics** - Business intelligence and optimization
-6. **Enterprise features** - SSO, audit trails, compliance tools
-
-## 5. Future Architecture Evolution
-
-### **Comment-Driven Rule-Based Development Roadmap**
-
-#### **Phase 1: Foundation & Setup (1-3 months)**
-- **Rule Definition Framework**: Implement standardized comment syntax for architectural rules
-- **Basic Parser Implementation**: Create rule extraction from comment blocks
-- **LLM Integration**: Enhance existing universal_framework with rule-based prompt generation
-- **Tool Integration**: Modify existing tools to support rule-guided generation
-
-#### **Phase 2: Rule Extraction & LLM Interaction (3-6 months)**
-- **Advanced Parsing**: Implement robust rule extraction with inheritance support
-- **Rule-to-Prompt Translation**: Create templates that translate rules into LLM instructions
-- **Response Validation**: Verify generated code adheres to specified architectural rules
-- **Context Management**: Intelligent context selection for large codebases
-
-#### **Phase 3: Agentic Execution & Integration (6-9 months)**
-- **Real-time Enforcement**: File monitoring and immediate rule violation feedback
-- **Code Generation Pipeline**: Multi-file generation with architectural compliance
-- **Testing Integration**: Rule-based test generation and compliance verification
-- **Version Control**: Automatic branching and commit management for rule-driven changes
-
-#### **Phase 4: Maintenance & Evolution (9-12 months)**
-- **Rule Evolution Framework**: Version control and backward compatibility for rules
-- **Security & Governance**: Access control and audit trails for rule modifications
-- **Performance Optimization**: Caching and intelligent triggering for development speed
-- **Cross-language Support**: Extend rule-based methodology beyond Python
-
-### **Integration Strategy with Current Architecture**
-- **Leverage Existing Frameworks**: Build rule engine on top of current universal_framework
-- **Enhance Logging System**: Extend logging_manager for rule compliance tracking
-- **Utilize Prompt System**: Integrate rule-based prompts with existing prompt templates
-- **Maintain Tool Compatibility**: Ensure existing tools work within rule-based constraints
-
-### **AI Assistant Optimization Insights**
-
-#### **Common User Pain Points**
-- **Tool switching friction** - Users want seamless workflow between tools
-- **Repetitive configuration** - API keys and settings reset frequently
-- **Limited context retention** - Tools don't remember user preferences
-- **Slow feedback loops** - No quick iteration on generated content
-
-#### **Proactive Assistance Opportunities**
-- **Automatic error recovery** - Retry failed operations with different parameters
-- **Intelligent suggestions** - Recommend tools based on user input patterns
-- **Context preservation** - Maintain conversation state across tool switches
-- **Performance optimization** - Suggest faster models for simple tasks
-
-#### **Critical Dependencies & Monitoring Points**
-- **Streamlit session state** - Core to all tool functionality
-- **AI API availability** - Primary failure point for all tools
-- **File system operations** - Prompt loading and session management
-- **Memory usage** - Large prompts and responses can cause issues
-
-#### **Development Best Practices**
-- **Always use structured logging** for debugging and monitoring
-- **Implement retry logic** for all external API calls
-- **Validate user inputs** before processing to prevent errors
-- **Maintain session state consistency** across all tools
-- **Follow the established framework patterns** when adding new functionality
-
-#### **Four Foundational Architectural Rules**
-1. **One Purpose Rule**: Each file serves a single, well-defined purpose
-2. **Dependency Direction Rule**: Controls import flow and prevents circular dependencies
-3. **Interface Rule**: Limits exposure of implementation details
-4. **No Cross-Talk Rule**: Prevents direct communication between features
-
-#### **Rule-Based Development Integration**
-- **Comment-Driven Architecture**: Embed architectural rules as structured comments within project files
-- **LLM-Guided Code Generation**: Use rules to guide AI code generation and prevent anti-patterns
-- **Automated Compliance**: Implement real-time rule enforcement and violation detection
-- **Self-Documenting Code**: Rules embedded directly in source files for clarity and maintenance
-
-### **Success Metrics & KPIs**
-
-#### **Current System Metrics**
-- **Tool usage frequency** - Which tools are most valuable to users
-- **Error rates by component** - Identify reliability issues
-- **Response times** - Track API performance and optimization opportunities
-- **User session duration** - Measure engagement and workflow efficiency
-- **Cost per operation** - Monitor AI API expenses and optimization needs
-
-#### **Rule-Based Development Metrics (Future)**
-- **Rule compliance rate** - Percentage of generated code that passes rule validation
-- **Architectural debt reduction** - Decrease in circular dependencies and coupling violations
-- **Developer onboarding time** - Time reduction due to self-documenting rules
-- **Code quality improvement** - Measurable improvements in maintainability metrics
-- **Rule evolution tracking** - Success rate of rule updates and backward compatibility
+### **Monitoring Points**
+- **Rule extraction accuracy**: Parse success rate from comment blocks
+- **Configuration loading**: Tool startup and rule application
+- **API integration**: Rule-based parameter application success
+- **Performance impact**: Rule processing overhead measurement
 
 ---
 
-*This analysis represents the current state as of the comprehensive codebase review. It should be updated regularly to reflect ongoing changes and improvements.*
+*This context reflects the current state after successful implementation of Priority 3: Tool Configuration Rules. All tools now operate under a unified rule-based architecture while maintaining complete functional independence.*

@@ -76,3 +76,102 @@ def parse_markdown_table(markdown_table):
             result.append(row_dict)
     
     return result
+
+def extract_comment_rules(file_path: str) -> Tuple[bool, Dict[str, Any]]:
+    """
+    Extract @RULE directives from file comments.
+    
+    Args:
+        file_path: Path to the file to parse
+        
+    Returns:
+        Tuple of (success, rules_dict)
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Pattern to match @RULE: directives in comments
+        rule_pattern = r'@RULE:(\w+):\s*(.+?)(?=\n|$)'
+        matches = re.findall(rule_pattern, content, re.IGNORECASE | re.MULTILINE)
+        
+        rules = {}
+        for rule_name, rule_value in matches:
+            rule_name = rule_name.upper()
+            
+            # Parse different rule value types
+            rule_value = rule_value.strip()
+            
+            # Handle numeric values
+            if rule_value.isdigit():
+                rules[rule_name] = int(rule_value)
+            # Handle ranges (e.g., "3-5", "40-80")
+            elif re.match(r'^\d+-\d+$', rule_value):
+                min_val, max_val = map(int, rule_value.split('-'))
+                rules[rule_name] = {'min': min_val, 'max': max_val}
+            # Handle comma-separated lists
+            elif ',' in rule_value:
+                rules[rule_name] = [item.strip() for item in rule_value.split(',')]
+            # Handle boolean values
+            elif rule_value.lower() in ['true', 'false']:
+                rules[rule_name] = rule_value.lower() == 'true'
+            # Handle decimal values
+            elif re.match(r'^\d+\.\d+$', rule_value):
+                rules[rule_name] = float(rule_value)
+            # Default to string
+            else:
+                rules[rule_name] = rule_value
+        
+        return True, rules
+        
+    except Exception as e:
+        print(f"⚠️ Rule extraction failed for {file_path}: {str(e)}")
+        return False, {}
+
+def extract_string_rules(content: str) -> Tuple[bool, Dict[str, Any]]:
+    """
+    Extract @RULE directives from string content.
+    
+    Args:
+        content: String content to parse
+        
+    Returns:
+        Tuple of (success, rules_dict)
+    """
+    try:
+        # Pattern to match @RULE: directives in comments
+        rule_pattern = r'@RULE:(\w+):\s*(.+?)(?=\n|$)'
+        matches = re.findall(rule_pattern, content, re.IGNORECASE | re.MULTILINE)
+        
+        rules = {}
+        for rule_name, rule_value in matches:
+            rule_name = rule_name.upper()
+            
+            # Parse different rule value types
+            rule_value = rule_value.strip()
+            
+            # Handle numeric values
+            if rule_value.isdigit():
+                rules[rule_name] = int(rule_value)
+            # Handle ranges (e.g., "3-5", "40-80")
+            elif re.match(r'^\d+-\d+$', rule_value):
+                min_val, max_val = map(int, rule_value.split('-'))
+                rules[rule_name] = {'min': min_val, 'max': max_val}
+            # Handle comma-separated lists
+            elif ',' in rule_value:
+                rules[rule_name] = [item.strip() for item in rule_value.split(',')]
+            # Handle boolean values
+            elif rule_value.lower() in ['true', 'false']:
+                rules[rule_name] = rule_value.lower() == 'true'
+            # Handle decimal values
+            elif re.match(r'^\d+\.\d+$', rule_value):
+                rules[rule_name] = float(rule_value)
+            # Default to string
+            else:
+                rules[rule_name] = rule_value
+        
+        return True, rules
+        
+    except Exception as e:
+        print(f"⚠️ Rule extraction failed from string content: {str(e)}")
+        return False, {}
