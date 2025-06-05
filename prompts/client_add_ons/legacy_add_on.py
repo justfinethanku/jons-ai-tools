@@ -27,4 +27,34 @@ Calls to Action (use 1 if space allows):
 
 Recommended Hashtags:
 #LegacyAdvisors #EntrepreneurExit #MergersAndAcquisitions #SecureTheLegacy #BusinessStrategy
+
+## Platform Captions
+
+### YouTube Shorts
+<caption>
+#hashtag1 #hashtag2 #entrepreneur #entrepreneurship
+
+### Facebook
+<caption>
+#hashtag1 #hashtag2 #hashtag3 #entrepreneur #entrepreneurship
+
+### Instagram
+<caption>
+#hashtag1 #hashtag2 #hashtag3 #entrepreneur #entrepreneurship
+
+### LinkedIn
+<caption>
+#hashtag1 #hashtag2 #entrepreneur #entrepreneurship
+
+### TikTok
+<caption>
+#hashtag1 #hashtag2 #entrepreneur #entrepreneurship
+
+## YouTube Description (Promo Video)
+<Paragraph 1: Expanded summary of the clip's core message and value.>
+
+<Paragraph 2: Urgency paragraph - "Why this matters NOW.">
+
+#hashtag1 #hashtag2 #hashtag3 #hashtag4 #entrepreneur #entrepreneurship #additionalhas
+
 """

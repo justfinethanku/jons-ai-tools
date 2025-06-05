@@ -1,5 +1,7 @@
 ## Response Guidelines
 - Keep all responses concise - default to bullet points
+- always think about what you are going to do before doing it.
+- always make a plan first before doing things
 - Only modify code that needs changing
 - Skip explanations unless I ask "why" or "explain"
 - When planning: think internally, output minimal summary

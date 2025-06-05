@@ -29,7 +29,8 @@ def refine_prompt(rough_prompt, meta_prompt):
         'TEMPERATURE': tool_config.get('TEMPERATURE', 0.3),
         'MAX_RETRIES': tool_config.get('MAX_RETRIES', 3),
         'TOP_P': tool_config.get('TOP_P', 0.9),
-        'TOP_K': tool_config.get('TOP_K', 40)
+        'TOP_K': tool_config.get('TOP_K', 40),
+        'MAX_OUTPUT_TOKENS': tool_config.get('MAX_OUTPUT_TOKENS', 8192)
     }
     
     final_prompt = f"{meta_prompt}\n\n[ {rough_prompt} ]"
@@ -66,7 +67,8 @@ def revise_prompt(current_prompt, revision_request):
         'TEMPERATURE': tool_config.get('REVISION_TEMPERATURE', 0.5),
         'MAX_RETRIES': tool_config.get('REVISION_MAX_RETRIES', 2),
         'TOP_P': tool_config.get('REVISION_TOP_P', 0.95),
-        'TOP_K': tool_config.get('REVISION_TOP_K', 50)
+        'TOP_K': tool_config.get('REVISION_TOP_K', 50),
+        'MAX_OUTPUT_TOKENS': tool_config.get('MAX_OUTPUT_TOKENS', 8192)
     }
     
     prompt = REVISION_PROMPT.format(

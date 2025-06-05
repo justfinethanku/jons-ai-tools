@@ -19,6 +19,7 @@
 @RULE:BUTTON_TEXT: Refine Prompt
 @RULE:SIDEBAR_INFO: This Prompt Refiner helps you iteratively improve your prompts through multiple revisions until you get the perfect result.
 @RULE:HELP_TEXT: 1. Enter your rough prompt\n2. Click 'Refine Prompt'\n3. Review the refined version\n4. Ask for revisions if needed\n5. Repeat until perfect!
+@RULE:MAX_OUTPUT_TOKENS: 8192
 """
 
 # Tool configuration loaded from rules above

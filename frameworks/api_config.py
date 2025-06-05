@@ -29,7 +29,7 @@ DEFAULT_API_RULES = {
         "TIMEOUT_SECONDS": 120,
         "TOP_P": 0.95,
         "TOP_K": 40,
-        "MAX_OUTPUT_TOKENS": 4096
+        "MAX_OUTPUT_TOKENS": 8192
     }
 }
 
@@ -57,7 +57,8 @@ def extract_api_rules_from_context(context_rules: Optional[Dict[str, Any]] = Non
         'TIMEOUT': 'timeout_seconds',
         'TOP_P': 'top_p',
         'TOP_K': 'top_k',
-        'MAX_TOKENS': 'max_tokens'
+        'MAX_TOKENS': 'max_tokens',
+        'MAX_OUTPUT_TOKENS': 'max_output_tokens'
     }
     
     for rule_key, api_param in rule_mapping.items():
