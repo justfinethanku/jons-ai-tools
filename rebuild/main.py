@@ -1,16 +1,8 @@
 """
-@RULE:PURPOSE: Main entry point and orchestration hub for comment-driven rule-based LLM development system
-@RULE:RESPONSIBILITY: Application lifecycle management, command-line interface, and high-level workflow coordination
-@RULE:IMPORTS_ALLOWED: core.execution_environment, core.rule_engine, core.llm_integrator, argparse, sys, os, logging
-@RULE:IMPORTS_FORBIDDEN: tools.*, shared.ai_client, tests.*
-@RULE:PUBLIC_API: main, setup_logging, parse_arguments
-@RULE:PRIVATE_IMPL: _initialize_system, _validate_environment, _handle_shutdown
-@RULE:NO_CROSS_TALK: tools, shared utilities (except through core interfaces)
-@RULE:DEPENDENCY_DIRECTION: main.py -> core.* only (never import from tools or shared directly)
-@RULE:INTERFACE_RULE: Minimal CLI surface, all business logic delegated to core modules
-@RULE:ONE_PURPOSE: Sole responsibility is application entry point and high-level orchestration
-@RULE:ERROR_HANDLING: Graceful shutdown, proper cleanup, user-friendly error messages
-@RULE:LOGGING_LEVEL: INFO for user operations, DEBUG for system diagnostics
+@RULE:LAYER: main
+@RULE:FORBIDDEN: tools.*, shared.ai_client, tests.*
+@SEE: CLAUDE.md#dependency-flow-rules
+Main entry point and orchestration hub for the rebuild framework
 """
 
 # Allowed imports based on dependency direction rules

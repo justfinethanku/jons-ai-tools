@@ -1,16 +1,8 @@
 """
-@RULE:PURPOSE: Common utility functions for file operations, validation, formatting, and data processing
-@RULE:RESPONSIBILITY: File validation, input sanitization, output formatting, metrics calculation, content hashing, timestamp management
-@RULE:IMPORTS_ALLOWED: pathlib, typing, hashlib, datetime, json, re, logging
-@RULE:IMPORTS_FORBIDDEN: core.*, tools.*, main, external AI libraries
-@RULE:PUBLIC_API: validate_file_path, sanitize_input, format_output, calculate_metrics, hash_content, timestamp_now
-@RULE:PRIVATE_IMPL: _validate_path_security, _sanitize_string, _format_json, _calculate_complexity
-@RULE:NO_CROSS_TALK: core modules, tools, main application
-@RULE:DEPENDENCY_DIRECTION: utils <- others (consumed by all modules, imports none)
-@RULE:INTERFACE_RULE: Pure utility functions with no side effects
-@RULE:ONE_PURPOSE: Single responsibility is common utility functionality
-@RULE:PERFORMANCE: Efficient implementations with minimal overhead
-@RULE:SECURITY: Input validation and sanitization for security
+@RULE:LAYER: shared/utils
+@RULE:FORBIDDEN: core.*, tools.*, main, external AI libraries
+@SEE: shared/CLAUDE.md#utility-patterns
+Common utility functions for file operations, validation, and formatting
 """
 
 # Allowed imports - standard library only

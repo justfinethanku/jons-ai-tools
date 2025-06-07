@@ -1,16 +1,8 @@
 """
-@RULE:PURPOSE: Store, manage, and enforce architectural rules with conflict detection and compliance evaluation
-@RULE:RESPONSIBILITY: Rule repository management, conflict detection, rule hierarchy management, compliance evaluation
-@RULE:IMPORTS_ALLOWED: .rule_parser, typing, dataclasses, enum, logging, json, sqlite3
-@RULE:IMPORTS_FORBIDDEN: .llm_integrator, .code_analyzer, .execution_environment, tools.*, shared.*, main
-@RULE:PUBLIC_API: RuleEngine, ArchitecturalRule, ComplianceResult, register_rule, evaluate_compliance, detect_conflicts
-@RULE:PRIVATE_IMPL: _store_rule, _validate_rule_conflicts, _evaluate_rule_hierarchy, _generate_compliance_report
-@RULE:NO_CROSS_TALK: llm_integrator, code_analyzer, execution_environment
-@RULE:DEPENDENCY_DIRECTION: rule_engine -> rule_parser (can import and use parser functionality)
-@RULE:INTERFACE_RULE: Clean rule management API with transactional operations
-@RULE:ONE_PURPOSE: Single responsibility is architectural rule storage and enforcement
-@RULE:PERSISTENCE: SQLite database for rule storage with ACID compliance
-@RULE:THREAD_SAFETY: Thread-safe operations for concurrent rule access
+@RULE:LAYER: core/rule_engine
+@RULE:FORBIDDEN: .llm_integrator, .code_analyzer, .execution_environment, tools.*, main
+@SEE: core/CLAUDE.md#rule-engine-patterns
+Stores, manages, and enforces architectural rules with conflict detection
 """
 
 # Allowed imports based on dependency rules

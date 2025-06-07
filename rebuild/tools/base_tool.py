@@ -1,16 +1,8 @@
 """
-@RULE:PURPOSE: Define base tool interface and common tool functionality for rule-driven development tools
-@RULE:RESPONSIBILITY: Tool interface definition, metadata management, result standardization, lifecycle management
-@RULE:IMPORTS_ALLOWED: typing, abc, dataclasses, enum, logging, pathlib
-@RULE:IMPORTS_FORBIDDEN: core.*, shared.*, main, other tools
-@RULE:PUBLIC_API: BaseTool, ToolMetadata, ToolResult, ToolStatus, execute, validate, configure
-@RULE:PRIVATE_IMPL: _validate_input, _process_result, _handle_error, _log_execution
-@RULE:NO_CROSS_TALK: core modules, shared utilities, main application, other tools
-@RULE:DEPENDENCY_DIRECTION: base_tool -> standard library only (no external dependencies)
-@RULE:INTERFACE_RULE: Abstract base class defining standardized tool interface
-@RULE:ONE_PURPOSE: Single responsibility is tool interface definition and common functionality
-@RULE:EXTENSIBILITY: Designed for inheritance by concrete tool implementations
-@RULE:THREAD_SAFETY: Thread-safe base implementation for concurrent tool execution
+@RULE:LAYER: tools/base_tool
+@RULE:FORBIDDEN: core.*, shared.*, main, other tools
+@SEE: tools/CLAUDE.md#base-tool-patterns
+Defines base tool interface and common functionality
 """
 
 # Allowed imports - standard library only

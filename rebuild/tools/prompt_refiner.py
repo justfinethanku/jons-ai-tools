@@ -1,16 +1,8 @@
 """
-@RULE:PURPOSE: Prompt refinement tool using AI to improve and iterate on prompts
-@RULE:RESPONSIBILITY: Prompt analysis, refinement, revision, and iterative improvement
-@RULE:IMPORTS_ALLOWED: .base_tool, typing, dataclasses, logging, pathlib, time
-@RULE:IMPORTS_FORBIDDEN: core.*, main, streamlit, frameworks.*
-@RULE:PUBLIC_API: PromptRefinerTool, refine_prompt, revise_prompt
-@RULE:PRIVATE_IMPL: _load_meta_prompt, _validate_prompt_input, _format_prompt_response
-@RULE:NO_CROSS_TALK: core modules, main application, UI frameworks
-@RULE:DEPENDENCY_DIRECTION: prompt_refiner -> base_tool, shared.ai_client
-@RULE:INTERFACE_RULE: Implements BaseTool interface for prompt refinement operations
-@RULE:ONE_PURPOSE: Single responsibility is prompt refinement and improvement
-@RULE:AI_INTEGRATION: Uses AI client for prompt refinement operations
-@RULE:STATELESS: Tool operations are stateless and thread-safe
+@RULE:LAYER: tools/prompt_refiner
+@RULE:FORBIDDEN: core.*, main, streamlit, frameworks.*
+@SEE: tools/CLAUDE.md#base-tool-patterns
+AI-powered prompt refinement and improvement tool
 """
 
 # Allowed imports

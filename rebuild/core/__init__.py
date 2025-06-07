@@ -1,15 +1,8 @@
 """
-@RULE:PURPOSE: Core module package initialization and public API definition
-@RULE:RESPONSIBILITY: Expose controlled public interfaces from core components
-@RULE:IMPORTS_ALLOWED: .rule_parser, .rule_engine, .llm_integrator, .code_analyzer, .execution_environment
-@RULE:IMPORTS_FORBIDDEN: tools.*, shared.*, tests.*, main
-@RULE:PUBLIC_API: RuleParser, RuleEngine, LLMIntegrator, CodeAnalyzer, ExecutionEnvironment
-@RULE:PRIVATE_IMPL: Internal core module communication, version management
-@RULE:NO_CROSS_TALK: tools, shared utilities, main application logic
-@RULE:DEPENDENCY_DIRECTION: Core modules can import from each other but never from external layers
-@RULE:INTERFACE_RULE: Minimal, well-defined public API with clear contracts
-@RULE:ONE_PURPOSE: Single responsibility is core module public interface management
-@RULE:VERSION_CONTROL: Maintain backward compatibility for public API changes
+@RULE:LAYER: core/__init__
+@RULE:FORBIDDEN: tools.*, shared.*, tests.*, main
+@SEE: core/CLAUDE.md#common-interfaces
+Core module package initialization and public API definition
 """
 
 # Core module version for API compatibility tracking

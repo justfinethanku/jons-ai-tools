@@ -1,16 +1,8 @@
 """
-@RULE:PURPOSE: Analyze existing code for rule compliance using AST parsing and dependency tracking
-@RULE:RESPONSIBILITY: Import analysis, interface compliance checking, dependency graph generation, violation detection
-@RULE:IMPORTS_ALLOWED: .rule_parser, .rule_engine, ast, typing, dataclasses, pathlib, logging, networkx
-@RULE:IMPORTS_FORBIDDEN: .llm_integrator, .execution_environment, tools.*, shared.*, main
-@RULE:PUBLIC_API: CodeAnalyzer, DependencyGraph, InterfaceReport, analyze_imports, check_interface_compliance, detect_violations
-@RULE:PRIVATE_IMPL: _parse_ast, _extract_imports, _analyze_function_signatures, _build_dependency_graph, _validate_interfaces
-@RULE:NO_CROSS_TALK: llm_integrator, execution_environment
-@RULE:DEPENDENCY_DIRECTION: code_analyzer -> rule_parser, rule_engine (can use both for analysis)
-@RULE:INTERFACE_RULE: Clean analysis API with comprehensive reporting capabilities
-@RULE:ONE_PURPOSE: Single responsibility is static code analysis for architectural compliance
-@RULE:PERFORMANCE: Efficient AST parsing with caching for large codebases
-@RULE:ACCURACY: Comprehensive analysis covering imports, interfaces, and dependencies
+@RULE:LAYER: core/code_analyzer
+@RULE:FORBIDDEN: .llm_integrator, .execution_environment, tools.*, shared.*, main
+@SEE: core/CLAUDE.md#validation-patterns
+Analyzes existing code for rule compliance using AST parsing
 """
 
 # Allowed imports based on dependency rules

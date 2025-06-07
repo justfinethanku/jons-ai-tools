@@ -1,16 +1,8 @@
 """
-@RULE:PURPOSE: Shared utilities package initialization and common functionality export
-@RULE:RESPONSIBILITY: Utility function organization, common data structures, shared configuration management
-@RULE:IMPORTS_ALLOWED: .ai_client, .utils, typing, logging
-@RULE:IMPORTS_FORBIDDEN: core.*, tools.*, main
-@RULE:PUBLIC_API: AIClient, UtilityFunctions, SharedConfig, CommonExceptions
-@RULE:PRIVATE_IMPL: _shared_config, _initialize_logging, _validate_environment
-@RULE:NO_CROSS_TALK: core modules, tools, main application
-@RULE:DEPENDENCY_DIRECTION: shared <- tools, core (shared utilities are consumed by others)
-@RULE:INTERFACE_RULE: Stable utility API with minimal external dependencies
-@RULE:ONE_PURPOSE: Single responsibility is shared utility and common functionality provision
-@RULE:BACKWARD_COMPATIBILITY: Maintain stable API for dependent modules
-@RULE:MINIMAL_DEPENDENCIES: Minimal external dependencies to reduce coupling
+@RULE:LAYER: shared/__init__
+@RULE:FORBIDDEN: core.*, tools.*, main
+@SEE: shared/CLAUDE.md#common-interfaces
+Shared utilities package initialization and common functionality export
 """
 
 # Shared utilities package version

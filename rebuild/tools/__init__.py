@@ -1,5 +1,8 @@
 """
-Tools package initialization.
+@RULE:LAYER: tools/__init__
+@RULE:FORBIDDEN: core.*, main
+@SEE: tools/CLAUDE.md#tool-interface-standards
+Tools package initialization and public API export
 """
 
 from .base_tool import (

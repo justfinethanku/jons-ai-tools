@@ -1,16 +1,8 @@
 """
-@RULE:PURPOSE: Extract and interpret architectural rules from code comments using regex and AST parsing
-@RULE:RESPONSIBILITY: Rule comment parsing, syntax validation, metadata extraction, inheritance resolution
-@RULE:IMPORTS_ALLOWED: re, ast, typing, pathlib, json, logging
-@RULE:IMPORTS_FORBIDDEN: .rule_engine, .llm_integrator, .code_analyzer, .execution_environment, tools.*, shared.*, main
-@RULE:PUBLIC_API: RuleParser, extract_rules, validate_syntax, resolve_inheritance
-@RULE:PRIVATE_IMPL: _parse_comment_block, _validate_rule_format, _resolve_rule_inheritance, _extract_metadata
-@RULE:NO_CROSS_TALK: rule_engine, llm_integrator, code_analyzer, execution_environment
-@RULE:DEPENDENCY_DIRECTION: rule_parser -> standard library only (no core module dependencies)
-@RULE:INTERFACE_RULE: Clean parsing API with well-defined input/output contracts
-@RULE:ONE_PURPOSE: Single responsibility is architectural rule extraction and validation
-@RULE:ERROR_HANDLING: Graceful handling of malformed rules with detailed error reporting
-@RULE:PERFORMANCE: Efficient parsing with caching for repeated file access
+@RULE:LAYER: core/rule_parser
+@RULE:FORBIDDEN: .rule_engine, .llm_integrator, .code_analyzer, .execution_environment, tools.*, shared.*, main
+@SEE: core/CLAUDE.md#rule-processing-flow
+Extracts and interprets architectural rules from code comments
 """
 
 # Allowed imports - standard library only

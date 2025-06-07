@@ -1,16 +1,8 @@
 """
-@RULE:PURPOSE: Translate architectural rules into LLM prompts and validate generated code responses
-@RULE:RESPONSIBILITY: Rule-to-prompt conversion, context management, response validation, iterative refinement
-@RULE:IMPORTS_ALLOWED: .rule_parser, .rule_engine, typing, dataclasses, enum, logging, json, openai, anthropic
-@RULE:IMPORTS_FORBIDDEN: .code_analyzer, .execution_environment, tools.*, shared.*, main
-@RULE:PUBLIC_API: LLMIntegrator, ValidationResult, generate_prompt, validate_response, iterative_refinement
-@RULE:PRIVATE_IMPL: _convert_rules_to_prompt, _manage_context_window, _validate_code_syntax, _refine_with_feedback
-@RULE:NO_CROSS_TALK: code_analyzer, execution_environment
-@RULE:DEPENDENCY_DIRECTION: llm_integrator -> rule_parser, rule_engine (can use both for rule processing)
-@RULE:INTERFACE_RULE: Clean LLM interaction API with standardized prompt/response handling
-@RULE:ONE_PURPOSE: Single responsibility is LLM interaction for rule-driven code generation
-@RULE:API_MANAGEMENT: Support multiple LLM providers with unified interface
-@RULE:SECURITY: Secure API key management and request validation
+@RULE:LAYER: core/llm_integrator
+@RULE:FORBIDDEN: .code_analyzer, .execution_environment, tools.*, main
+@SEE: core/CLAUDE.md#llm-integration-patterns
+Translates architectural rules into LLM prompts and validates responses
 """
 
 # Allowed imports based on dependency rules

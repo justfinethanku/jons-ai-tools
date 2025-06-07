@@ -1,16 +1,8 @@
 """
-@RULE:PURPOSE: Unified AI client interface for multiple LLM providers with request/response management
-@RULE:RESPONSIBILITY: API client management, request formatting, response parsing, error handling, rate limiting
-@RULE:IMPORTS_ALLOWED: typing, dataclasses, enum, logging, requests, openai, anthropic, google.generativeai
-@RULE:IMPORTS_FORBIDDEN: core.*, tools.*, main
-@RULE:PUBLIC_API: AIClient, APIProvider, ClientConfig, make_request, parse_response
-@RULE:PRIVATE_IMPL: _format_request, _handle_response, _manage_rate_limits, _retry_on_failure
-@RULE:NO_CROSS_TALK: core modules, tools, main application
-@RULE:DEPENDENCY_DIRECTION: ai_client <- others (consumed by core and tools, never imports from them)
-@RULE:INTERFACE_RULE: Provider-agnostic API client with unified interface
-@RULE:ONE_PURPOSE: Single responsibility is AI API client functionality
-@RULE:RATE_LIMITING: Built-in rate limiting and retry logic for API stability
-@RULE:SECURITY: Secure API key management and request validation
+@RULE:LAYER: shared/ai_client
+@RULE:FORBIDDEN: core.*, tools.*, main
+@SEE: shared/CLAUDE.md#ai-client-patterns
+Unified AI client interface for multiple LLM providers
 """
 
 # Allowed imports - external libraries and standard library

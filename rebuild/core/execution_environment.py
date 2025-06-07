@@ -1,16 +1,8 @@
 """
-@RULE:PURPOSE: Orchestrate the complete comment-driven development process with file monitoring and pipeline management
-@RULE:RESPONSIBILITY: File system monitoring, code generation pipeline, testing integration, feedback collection, workflow orchestration
-@RULE:IMPORTS_ALLOWED: .rule_parser, .rule_engine, .llm_integrator, .code_analyzer, typing, dataclasses, pathlib, logging, watchdog, subprocess
-@RULE:IMPORTS_FORBIDDEN: tools.*, shared.*, main
-@RULE:PUBLIC_API: ExecutionEnvironment, WorkflowResult, execute_generation_pipeline, monitor_file_changes, collect_feedback
-@RULE:PRIVATE_IMPL: _setup_file_monitoring, _execute_pipeline_stage, _validate_pipeline_result, _handle_file_change_event
-@RULE:NO_CROSS_TALK: tools, shared utilities
-@RULE:DEPENDENCY_DIRECTION: execution_environment -> all other core modules (orchestration layer)
-@RULE:INTERFACE_RULE: High-level workflow orchestration with comprehensive result reporting
-@RULE:ONE_PURPOSE: Single responsibility is complete development workflow orchestration
-@RULE:ASYNC_SUPPORT: Asynchronous operations for file monitoring and pipeline execution
-@RULE:ERROR_RECOVERY: Robust error handling with graceful degradation and recovery
+@RULE:LAYER: core/execution_environment
+@RULE:FORBIDDEN: tools.*, shared.*, main
+@SEE: core/CLAUDE.md#processing-patterns
+Orchestrates the complete comment-driven development workflow
 """
 
 # Allowed imports based on dependency rules

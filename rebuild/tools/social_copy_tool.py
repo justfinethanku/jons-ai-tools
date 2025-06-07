@@ -1,16 +1,8 @@
 """
-@RULE:PURPOSE: Social media copy generation tool using AI with platform-specific rules
-@RULE:RESPONSIBILITY: Generate platform-optimized social media copy, apply platform rules, handle multiple platforms
-@RULE:IMPORTS_ALLOWED: .base_tool, typing, dataclasses, logging, pathlib, time, os, importlib
-@RULE:IMPORTS_FORBIDDEN: core.*, main, streamlit, frameworks.*
-@RULE:PUBLIC_API: SocialCopyTool, generate_social_copy
-@RULE:PRIVATE_IMPL: _load_platform_prompts, _apply_platform_rules, _generate_for_platform
-@RULE:NO_CROSS_TALK: core modules, main application, UI frameworks
-@RULE:DEPENDENCY_DIRECTION: social_copy_tool -> base_tool, shared.ai_client
-@RULE:INTERFACE_RULE: Implements BaseTool interface for social copy generation operations
-@RULE:ONE_PURPOSE: Single responsibility is social media copy generation with platform rules
-@RULE:AI_INTEGRATION: Uses AI client for copy generation operations
-@RULE:STATELESS: Tool operations are stateless and thread-safe
+@RULE:LAYER: tools/social_copy_tool
+@RULE:FORBIDDEN: core.*, main, streamlit, frameworks.*
+@SEE: tools/CLAUDE.md#base-tool-patterns
+Social media copy generation tool with platform-specific rules
 """
 
 # Allowed imports

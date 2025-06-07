@@ -1,16 +1,8 @@
 """
-@RULE:PURPOSE: Code-focused prompt refinement and explanation tool for development assistance
-@RULE:RESPONSIBILITY: Code prompt optimization, technical explanation, development workflow enhancement
-@RULE:IMPORTS_ALLOWED: .base_tool, typing, dataclasses, logging, pathlib, time
-@RULE:IMPORTS_FORBIDDEN: core.*, main, streamlit, frameworks.*
-@RULE:PUBLIC_API: CoderHelperTool, refine_code_prompt, explain_code_prompt
-@RULE:PRIVATE_IMPL: _refine_for_coding, _explain_technical_concept, _validate_code_input
-@RULE:NO_CROSS_TALK: core modules, main application, UI frameworks
-@RULE:DEPENDENCY_DIRECTION: coder_helper -> base_tool, shared.ai_client
-@RULE:INTERFACE_RULE: Implements BaseTool interface for code-focused operations
-@RULE:ONE_PURPOSE: Single responsibility is code prompt refinement and explanation
-@RULE:AI_INTEGRATION: Uses AI client for code-focused prompt operations
-@RULE:STATELESS: Tool operations are stateless and thread-safe
+@RULE:LAYER: tools/coder_helper
+@RULE:FORBIDDEN: core.*, main, streamlit, frameworks.*
+@SEE: tools/CLAUDE.md#base-tool-patterns
+Code-focused prompt refinement and explanation tool
 """
 
 # Allowed imports
