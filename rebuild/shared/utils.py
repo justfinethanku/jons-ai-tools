@@ -14,13 +14,14 @@
 """
 
 # Allowed imports - standard library only
-# import hashlib
-# import json
-# import logging
-# import re
-# from datetime import datetime, timezone
-# from pathlib import Path
-# from typing import Dict, Any, List, Optional, Union, Tuple
+import hashlib
+import json
+import logging
+import re
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Dict, Any, List, Optional, Union, Tuple
 
 
 # File validation functions
@@ -42,13 +43,47 @@ def validate_file_path(file_path: Union[str, Path], must_exist: bool = False, al
     - Accessibility and permissions
     - Existence check if required
     """
-    # Implementation would:
-    # 1. Convert to Path object for consistent handling
-    # 2. Check for path traversal attacks (../, etc.)
-    # 3. Validate file extension against allowed list
-    # 4. Check file existence and permissions
-    # 5. Return validation result with detailed error message
-    pass
+    try:
+        # Handle empty or None paths
+        if not file_path:
+            return False, "File path is empty or None"
+        
+        # Convert to Path object for consistent handling
+        path = Path(file_path)
+        
+        # Check for path traversal attacks
+        path_str = str(path)
+        if ".." in path_str or path_str.startswith("/"):
+            # Allow absolute paths but check for traversal patterns
+            if ".." in path.parts:
+                return False, "Path contains path traversal attempts (security violation)"
+        
+        # Validate file extension if specified
+        if allowed_extensions:
+            if not path.suffix or path.suffix not in allowed_extensions:
+                return False, f"File extension not allowed. Allowed: {allowed_extensions}"
+        
+        # Check file existence if required
+        if must_exist:
+            if not path.exists():
+                return False, f"File does not exist: {path}"
+            
+            # Check if it's actually a file (not directory)
+            if not path.is_file():
+                return False, f"Path exists but is not a file: {path}"
+        
+        # Check parent directory permissions if file doesn't exist
+        if not must_exist and not path.exists():
+            parent = path.parent
+            if not parent.exists():
+                return False, f"Parent directory does not exist: {parent}"
+            if not os.access(parent, os.W_OK):
+                return False, f"No write permission to parent directory: {parent}"
+        
+        return True, ""
+        
+    except Exception as e:
+        return False, f"Path validation error: {str(e)}"
 
 
 def sanitize_input(input_data: Union[str, Dict[str, Any]], max_length: Optional[int] = None, allowed_chars: Optional[str] = None) -> Union[str, Dict[str, Any]]:
@@ -69,13 +104,69 @@ def sanitize_input(input_data: Union[str, Dict[str, Any]], max_length: Optional[
     - Normalize whitespace and encoding
     - Recursively sanitize dictionary values
     """
-    # Implementation would:
-    # 1. Handle both string and dictionary inputs
-    # 2. Apply character filtering and length limits
-    # 3. Normalize whitespace and encoding
-    # 4. Recursively process nested data structures
-    # 5. Return sanitized data maintaining original type
-    pass
+    if input_data is None:
+        return None
+    
+    if isinstance(input_data, str):
+        return _sanitize_string(input_data, max_length, allowed_chars)
+    elif isinstance(input_data, dict):
+        return _sanitize_dict(input_data, max_length, allowed_chars)
+    else:
+        # For other types, convert to string and sanitize
+        return _sanitize_string(str(input_data), max_length, allowed_chars)
+
+
+def _sanitize_string(text: str, max_length: Optional[int] = None, allowed_chars: Optional[str] = None) -> str:
+    """Private method to sanitize string input."""
+    if not text:
+        return text
+    
+    # Remove dangerous script tags and similar
+    dangerous_patterns = [
+        r'<script[^>]*>.*?</script>',
+        r'<iframe[^>]*>.*?</iframe>',
+        r'javascript:',
+        r'on\w+\s*=',  # onclick, onload, etc.
+    ]
+    
+    sanitized = text
+    for pattern in dangerous_patterns:
+        sanitized = re.sub(pattern, '', sanitized, flags=re.IGNORECASE | re.DOTALL)
+    
+    # Apply character filtering if specified
+    if allowed_chars:
+        sanitized = re.sub(f'[^{allowed_chars}]', '', sanitized)
+    
+    # Normalize whitespace
+    sanitized = re.sub(r'\s+', ' ', sanitized).strip()
+    
+    # Apply length limit
+    if max_length and len(sanitized) > max_length:
+        sanitized = sanitized[:max_length]
+    
+    return sanitized
+
+
+def _sanitize_dict(data: Dict[str, Any], max_length: Optional[int] = None, allowed_chars: Optional[str] = None) -> Dict[str, Any]:
+    """Private method to recursively sanitize dictionary data."""
+    sanitized = {}
+    
+    for key, value in data.items():
+        # Sanitize the key
+        clean_key = _sanitize_string(str(key), max_length, allowed_chars)
+        
+        # Sanitize the value recursively
+        if isinstance(value, str):
+            sanitized[clean_key] = _sanitize_string(value, max_length, allowed_chars)
+        elif isinstance(value, dict):
+            sanitized[clean_key] = _sanitize_dict(value, max_length, allowed_chars)
+        elif isinstance(value, list):
+            sanitized[clean_key] = [sanitize_input(item, max_length, allowed_chars) for item in value]
+        else:
+            # For other types, keep as-is or convert to string if needed
+            sanitized[clean_key] = value
+    
+    return sanitized
 
 
 def format_output(data: Any, format_type: str = "json", pretty: bool = True) -> str:
@@ -96,13 +187,75 @@ def format_output(data: Any, format_type: str = "json", pretty: bool = True) -> 
     - Table format for structured data
     - Plain text for simple output
     """
-    # Implementation would:
-    # 1. Determine appropriate formatting based on type
-    # 2. Apply format-specific serialization
-    # 3. Handle pretty printing options
-    # 4. Ensure consistent encoding and line endings
-    # 5. Return formatted string
-    pass
+    try:
+        if format_type.lower() == "json":
+            return _format_json(data, pretty)
+        elif format_type.lower() == "table":
+            return _format_table(data)
+        elif format_type.lower() == "text":
+            return _format_text(data)
+        else:
+            # Fallback to JSON for unsupported formats
+            return _format_json(data, pretty)
+    except Exception as e:
+        return f"Error formatting output: {str(e)}"
+
+
+def _format_json(data: Any, pretty: bool = True) -> str:
+    """Private method to format data as JSON."""
+    try:
+        if pretty:
+            return json.dumps(data, indent=2, ensure_ascii=False, default=str)
+        else:
+            return json.dumps(data, ensure_ascii=False, default=str)
+    except (TypeError, ValueError):
+        # Fallback for non-serializable objects
+        return json.dumps({"data": str(data)}, indent=2 if pretty else None)
+
+
+def _format_table(data: Any) -> str:
+    """Private method to format data as a table."""
+    if isinstance(data, list) and data and isinstance(data[0], dict):
+        # Format list of dictionaries as table
+        headers = list(data[0].keys())
+        lines = []
+        
+        # Header row
+        header_line = " | ".join(str(h) for h in headers)
+        lines.append(header_line)
+        lines.append("-" * len(header_line))
+        
+        # Data rows
+        for item in data:
+            row = " | ".join(str(item.get(h, "")) for h in headers)
+            lines.append(row)
+        
+        return "\n".join(lines)
+    elif isinstance(data, dict):
+        # Format dictionary as key-value table
+        lines = []
+        for key, value in data.items():
+            lines.append(f"{key} | {value}")
+        return "\n".join(lines)
+    else:
+        # Fallback to string representation
+        return str(data)
+
+
+def _format_text(data: Any) -> str:
+    """Private method to format data as plain text."""
+    if isinstance(data, dict):
+        lines = []
+        for key, value in data.items():
+            if isinstance(value, (dict, list)):
+                lines.append(f"{key}: {json.dumps(value, default=str)}")
+            else:
+                lines.append(f"{key}: {value}")
+        return "\n".join(lines)
+    elif isinstance(data, list):
+        return "\n".join(str(item) for item in data)
+    else:
+        return str(data)
 
 
 # Metrics and analysis functions
@@ -124,13 +277,44 @@ def calculate_metrics(content: str, metric_types: Optional[List[str]] = None) ->
     - Readability scores
     - Code-specific metrics (if applicable)
     """
-    # Implementation would:
-    # 1. Calculate basic text metrics (chars, words, lines)
-    # 2. Compute complexity and readability scores
-    # 3. Handle code-specific metrics for programming content
-    # 4. Filter results based on requested metric types
-    # 5. Return comprehensive metrics dictionary
-    pass
+    if not content:
+        return {
+            "character_count": 0,
+            "word_count": 0,
+            "sentence_count": 0,
+            "complexity_score": 0.0,
+            "readability_score": 0.0
+        }
+    
+    metrics = {}
+    
+    # Basic metrics
+    metrics["character_count"] = len(content)
+    metrics["word_count"] = len(content.split())
+    
+    # Sentence count (simple approximation)
+    sentence_endings = content.count('.') + content.count('!') + content.count('?')
+    metrics["sentence_count"] = max(1, sentence_endings)  # At least 1 sentence
+    
+    # Complexity metrics
+    if metrics["sentence_count"] > 0:
+        avg_words_per_sentence = metrics["word_count"] / metrics["sentence_count"]
+        metrics["complexity_score"] = min(10.0, avg_words_per_sentence / 2)  # Scale 0-10
+    else:
+        metrics["complexity_score"] = 0.0
+    
+    # Simple readability score (inverse of complexity)
+    metrics["readability_score"] = max(0.0, 10.0 - metrics["complexity_score"])
+    
+    # Filter metrics if specific types requested
+    if metric_types:
+        filtered_metrics = {}
+        for metric_type in metric_types:
+            if metric_type in metrics:
+                filtered_metrics[metric_type] = metrics[metric_type]
+        return filtered_metrics
+    
+    return metrics
 
 
 def hash_content(content: Union[str, bytes], algorithm: str = "sha256") -> str:
@@ -149,24 +333,45 @@ def hash_content(content: Union[str, bytes], algorithm: str = "sha256") -> str:
     - Support multiple algorithms for compatibility
     - Handle both string and binary content
     """
-    # Implementation would:
-    # 1. Convert string content to bytes if necessary
-    # 2. Create hash object for specified algorithm
-    # 3. Update hash with content
-    # 4. Return hexadecimal digest
-    pass
+    try:
+        # Convert string to bytes if necessary
+        if isinstance(content, str):
+            content_bytes = content.encode('utf-8')
+        else:
+            content_bytes = content
+        
+        # Create hash object for specified algorithm
+        if algorithm.lower() == "md5":
+            hash_obj = hashlib.md5()
+        elif algorithm.lower() == "sha1":
+            hash_obj = hashlib.sha1()
+        elif algorithm.lower() == "sha256":
+            hash_obj = hashlib.sha256()
+        elif algorithm.lower() == "sha512":
+            hash_obj = hashlib.sha512()
+        else:
+            # Default to SHA256 for unsupported algorithms
+            hash_obj = hashlib.sha256()
+        
+        # Update hash with content and return hexadecimal digest
+        hash_obj.update(content_bytes)
+        return hash_obj.hexdigest()
+        
+    except Exception as e:
+        # Fallback: return empty hash on error
+        return ""
 
 
 # Time and timestamp functions
-def timestamp_now(format_type: str = "iso") -> str:
+def timestamp_now(format_type: str = "iso") -> Union[str, int, float]:
     """
     Generate current timestamp in specified format.
     
     Args:
-        format_type: Format type ('iso', 'unix', 'readable', 'filename')
+        format_type: Format type ('iso', 'unix', 'human', 'filename')
         
     Returns:
-        Formatted timestamp string
+        Formatted timestamp string or numeric value
         
     Supported Formats:
     - ISO 8601 format with timezone
@@ -174,32 +379,45 @@ def timestamp_now(format_type: str = "iso") -> str:
     - Human-readable format
     - Filename-safe format (no special characters)
     """
-    # Implementation would:
-    # 1. Get current UTC time
-    # 2. Format according to specified type
-    # 3. Handle timezone information appropriately
-    # 4. Return consistently formatted timestamp
-    pass
+    try:
+        now = datetime.now(timezone.utc)
+        
+        if format_type.lower() == "iso":
+            return now.isoformat()
+        elif format_type.lower() == "unix":
+            return now.timestamp()
+        elif format_type.lower() == "human":
+            return now.strftime("%Y-%m-%d %H:%M:%S UTC")
+        elif format_type.lower() == "filename":
+            return now.strftime("%Y%m%d_%H%M%S")
+        else:
+            # Default to ISO format
+            return now.isoformat()
+            
+    except Exception as e:
+        # Fallback to simple string representation
+        return str(datetime.now())
 
 
 # JSON and data processing utilities
-def safe_json_parse(json_string: str, default: Any = None) -> Any:
+def safe_json_parse(json_string: str, fallback: Any = None) -> Any:
     """
     Safely parse JSON string with error handling.
     
     Args:
         json_string: JSON string to parse
-        default: Default value to return on parse failure
+        fallback: Default value to return on parse failure
         
     Returns:
-        Parsed JSON data or default value
+        Parsed JSON data or fallback value
     """
-    # Implementation would:
-    # 1. Attempt to parse JSON string
-    # 2. Handle parse errors gracefully
-    # 3. Return default value on failure
-    # 4. Log parsing errors for debugging
-    pass
+    try:
+        if not json_string or not json_string.strip():
+            return fallback if fallback is not None else {}
+        
+        return json.loads(json_string)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return fallback if fallback is not None else {}
 
 
 def safe_json_stringify(data: Any, default: str = "{}") -> str:
@@ -213,116 +431,70 @@ def safe_json_stringify(data: Any, default: str = "{}") -> str:
     Returns:
         JSON string representation or default
     """
-    # Implementation would:
-    # 1. Attempt to serialize data to JSON
-    # 2. Handle non-serializable objects gracefully
-    # 3. Return default value on failure
-    # 4. Use consistent formatting options
-    pass
+    try:
+        return json.dumps(data, ensure_ascii=False, default=str)
+    except (TypeError, ValueError, OverflowError):
+        return default
 
 
-# Private utility functions
-def _validate_path_security(path: Path) -> bool:
+# Environment and configuration utilities
+def get_environment_variable(var_name: str, default: Any = None, var_type: type = str) -> Any:
     """
-    Private function to validate path for security issues.
+    Get environment variable with type conversion and default fallback.
     
     Args:
-        path: Path to validate
-        
-    Returns:
-        True if path is secure, False otherwise
-    """
-    # Check for path traversal and other security issues
-    pass
-
-
-def _sanitize_string(text: str, max_length: Optional[int], allowed_pattern: Optional[str]) -> str:
-    """
-    Private function to sanitize string content.
-    
-    Args:
-        text: String to sanitize
-        max_length: Optional maximum length
-        allowed_pattern: Optional regex for allowed characters
-        
-    Returns:
-        Sanitized string
-    """
-    # Apply string sanitization rules
-    pass
-
-
-def _format_json(data: Any, pretty: bool) -> str:
-    """
-    Private function to format data as JSON.
-    
-    Args:
-        data: Data to format
-        pretty: Whether to use pretty printing
-        
-    Returns:
-        JSON formatted string
-    """
-    # Format data as JSON with appropriate options
-    pass
-
-
-def _calculate_complexity(text: str) -> Dict[str, float]:
-    """
-    Private function to calculate text complexity metrics.
-    
-    Args:
-        text: Text to analyze
-        
-    Returns:
-        Dictionary of complexity metrics
-    """
-    # Calculate readability and complexity scores
-    pass
-
-
-# Configuration and environment utilities
-def get_environment_variable(name: str, default: Optional[str] = None, required: bool = False) -> Optional[str]:
-    """
-    Get environment variable with validation and defaults.
-    
-    Args:
-        name: Environment variable name
-        default: Default value if variable not set
-        required: Whether variable is required
+        var_name: Name of environment variable
+        default: Default value if variable not found
+        var_type: Type to convert the variable to
         
     Returns:
         Environment variable value or default
-        
-    Raises:
-        ValueError: If required variable is not set
     """
-    # Implementation would:
-    # 1. Check environment for variable
-    # 2. Return default if not found and not required
-    # 3. Raise error if required and not found
-    # 4. Log variable access for debugging
-    pass
+    try:
+        value = os.environ.get(var_name)
+        if value is None:
+            return default
+        
+        # Type conversion
+        if var_type == bool:
+            return value.lower() in ('true', '1', 'yes', 'on')
+        elif var_type == int:
+            return int(value)
+        elif var_type == float:
+            return float(value)
+        else:
+            return str(value)
+            
+    except (ValueError, TypeError):
+        return default
 
 
-def parse_configuration_string(config_string: str, separator: str = ",", key_value_separator: str = "=") -> Dict[str, str]:
+def parse_configuration_string(config_str: str, format_type: str = "key_value") -> Dict[str, Any]:
     """
     Parse configuration string into dictionary.
     
     Args:
-        config_string: Configuration string to parse
-        separator: Separator between key-value pairs
-        key_value_separator: Separator between keys and values
+        config_str: Configuration string to parse
+        format_type: Format type ('key_value', 'json')
         
     Returns:
-        Dictionary of configuration key-value pairs
-        
-    Example:
-        "key1=value1,key2=value2" -> {"key1": "value1", "key2": "value2"}
+        Parsed configuration dictionary
     """
-    # Implementation would:
-    # 1. Split string by separator
-    # 2. Parse each key-value pair
-    # 3. Handle edge cases and malformed input
-    # 4. Return configuration dictionary
-    pass
+    try:
+        if not config_str or not config_str.strip():
+            return {}
+        
+        if format_type.lower() == "json":
+            return safe_json_parse(config_str, {})
+        else:
+            # Parse key=value;key=value format
+            config = {}
+            pairs = config_str.split(';')
+            for pair in pairs:
+                if '=' in pair:
+                    key, value = pair.split('=', 1)
+                    config[key.strip()] = value.strip()
+            return config
+            
+    except Exception:
+        return {}

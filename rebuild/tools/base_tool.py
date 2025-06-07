@@ -14,34 +14,43 @@
 """
 
 # Allowed imports - standard library only
-# import logging
-# from typing import Dict, Any, List, Optional, Union
-# from abc import ABC, abstractmethod
-# from dataclasses import dataclass, field
-# from enum import Enum, auto
-# from pathlib import Path
+import logging
+from typing import Dict, Any, List, Optional, Union
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from enum import Enum, auto
+from pathlib import Path
 
 
 class ToolStatus(Enum):
     """Enumeration of tool execution status."""
-    # READY = auto()           # Tool ready for execution
-    # RUNNING = auto()         # Tool currently executing
-    # COMPLETED = auto()       # Tool execution completed successfully
-    # FAILED = auto()          # Tool execution failed
-    # CANCELLED = auto()       # Tool execution cancelled
-    # TIMEOUT = auto()         # Tool execution timed out
-    pass
+    SUCCESS = auto()         # Tool execution completed successfully
+    ERROR = auto()           # Tool execution failed
+    PENDING = auto()         # Tool execution pending
+    RUNNING = auto()         # Tool currently executing
+    CANCELLED = auto()       # Tool execution cancelled
+    TIMEOUT = auto()         # Tool execution timed out
 
 
 class ToolCapability(Enum):
     """Enumeration of tool capabilities."""
-    # CODE_GENERATION = auto()     # Generate code from requirements
-    # CODE_ANALYSIS = auto()       # Analyze existing code
-    # RULE_VALIDATION = auto()     # Validate rule compliance
-    # CONTENT_CREATION = auto()    # Create content (docs, copy, etc.)
-    # TESTING = auto()             # Execute tests and validation
-    # MONITORING = auto()          # Monitor files and changes
-    pass
+    TEXT_PROCESSING = auto()     # Process and transform text
+    AI_INTEGRATION = auto()      # Integrate with AI services
+    RULE_PROCESSING = auto()     # Process architectural rules
+    TEMPLATE_PROCESSING = auto() # Process templates
+    CONTEXT_AWARE = auto()       # Context-aware processing
+    PROMPT_REFINEMENT = auto()   # Refine and improve prompts
+    CONTENT_GENERATION = auto()  # Generate content
+    VALIDATION = auto()          # Validate inputs/outputs
+
+
+@dataclass
+class ExecutionContext:
+    """Execution context for tool runs."""
+    user_id: Optional[str] = None
+    session_id: Optional[str] = None
+    environment: str = "production"
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -53,6 +62,7 @@ class ToolMetadata:
         name: Unique tool identifier
         version: Tool version string
         description: Human-readable tool description
+        supported_operations: List of supported operations
         capabilities: List of tool capabilities
         author: Tool author/maintainer
         license: Tool license information
@@ -60,16 +70,16 @@ class ToolMetadata:
         supported_file_types: List of supported file extensions
         configuration_schema: Optional configuration schema
     """
-    # name: str
-    # version: str
-    # description: str
-    # capabilities: List[ToolCapability] = field(default_factory=list)
-    # author: str = "Unknown"
-    # license: str = "MIT"
-    # dependencies: List[str] = field(default_factory=list)
-    # supported_file_types: List[str] = field(default_factory=list)
-    # configuration_schema: Optional[Dict[str, Any]] = None
-    pass
+    name: str
+    version: str
+    description: str
+    supported_operations: List[str] = field(default_factory=list)
+    capabilities: List[ToolCapability] = field(default_factory=list)
+    author: str = "Unknown"
+    license: str = "MIT"
+    dependencies: List[str] = field(default_factory=list)
+    supported_file_types: List[str] = field(default_factory=list)
+    configuration_schema: Optional[Dict[str, Any]] = None
 
 
 @dataclass
@@ -83,15 +93,16 @@ class ToolInput:
         parameters: Operation-specific parameters
         configuration: Tool configuration overrides
         context: Additional execution context
+        execution_context: Execution context
         metadata: Input metadata for tracing
     """
-    # operation: str
-    # target_files: List[str] = field(default_factory=list)
-    # parameters: Dict[str, Any] = field(default_factory=dict)
-    # configuration: Dict[str, Any] = field(default_factory=dict)
-    # context: Dict[str, Any] = field(default_factory=dict)
-    # metadata: Dict[str, Any] = field(default_factory=dict)
-    pass
+    operation: str
+    target_files: List[str] = field(default_factory=list)
+    parameters: Dict[str, Any] = field(default_factory=dict)
+    configuration: Dict[str, Any] = field(default_factory=dict)
+    context: Dict[str, Any] = field(default_factory=dict)
+    execution_context: Optional[ExecutionContext] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -101,25 +112,22 @@ class ToolResult:
     
     Attributes:
         status: Execution status
-        success: Whether execution was successful
+        output: Operation results
         output_files: List of files created/modified during execution
-        results: Operation-specific results
         errors: List of errors encountered
         warnings: List of warnings generated
         metrics: Performance and quality metrics
         execution_time: Total execution time in seconds
         metadata: Result metadata for analysis
     """
-    # status: ToolStatus
-    # success: bool
-    # output_files: List[str] = field(default_factory=list)
-    # results: Dict[str, Any] = field(default_factory=dict)
-    # errors: List[str] = field(default_factory=list)
-    # warnings: List[str] = field(default_factory=list)
-    # metrics: Dict[str, float] = field(default_factory=dict)
-    # execution_time: float = 0.0
-    # metadata: Dict[str, Any] = field(default_factory=dict)
-    pass
+    status: ToolStatus
+    output: Dict[str, Any] = field(default_factory=dict)
+    output_files: List[str] = field(default_factory=list)
+    errors: List[str] = field(default_factory=list)
+    warnings: List[str] = field(default_factory=list)
+    metrics: Dict[str, float] = field(default_factory=dict)
+    execution_time: float = 0.0
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 class BaseTool(ABC):
@@ -145,11 +153,10 @@ class BaseTool(ABC):
         Args:
             configuration: Optional tool configuration
         """
-        # self._configuration = configuration or {}
-        # self._logger = logging.getLogger(self.__class__.__name__)
-        # self._status = ToolStatus.READY
-        # self._metadata = self.get_metadata()
-        pass
+        self._configuration = configuration or {}
+        self._logger = logging.getLogger(self.__class__.__name__)
+        self._status = ToolStatus.PENDING
+        self._metadata = self.get_metadata()
     
     @abstractmethod
     def get_metadata(self) -> ToolMetadata:
@@ -210,12 +217,23 @@ class BaseTool(ABC):
         This method allows runtime configuration updates while maintaining
         tool state consistency and validation.
         """
-        # Implementation would:
-        # 1. Validate new configuration against schema
-        # 2. Merge with existing configuration
-        # 3. Update internal tool state
-        # 4. Log configuration changes
-        pass
+        try:
+            # Validate new configuration
+            validation_errors = self._validate_configuration(configuration)
+            if validation_errors:
+                self._logger.error(f"Configuration validation failed: {validation_errors}")
+                return False
+            
+            # Merge with existing configuration
+            self._configuration.update(configuration)
+            
+            # Log configuration changes
+            self._logger.info(f"Configuration updated: {configuration}")
+            
+            return True
+        except Exception as e:
+            self._logger.error(f"Failed to update configuration: {str(e)}")
+            return False
     
     def get_status(self) -> ToolStatus:
         """
@@ -224,8 +242,7 @@ class BaseTool(ABC):
         Returns:
             Current ToolStatus
         """
-        # return self._status
-        pass
+        return self._status
     
     def get_configuration(self) -> Dict[str, Any]:
         """
@@ -234,8 +251,7 @@ class BaseTool(ABC):
         Returns:
             Current configuration dictionary
         """
-        # return self._configuration.copy()
-        pass
+        return self._configuration.copy()
     
     def supports_operation(self, operation: str) -> bool:
         """
@@ -247,8 +263,7 @@ class BaseTool(ABC):
         Returns:
             True if operation is supported, False otherwise
         """
-        # Check if operation is supported by this tool
-        pass
+        return operation in self._metadata.supported_operations
     
     def supports_file_type(self, file_extension: str) -> bool:
         """
@@ -260,8 +275,7 @@ class BaseTool(ABC):
         Returns:
             True if file type is supported, False otherwise
         """
-        # Check if file type is supported by this tool
-        pass
+        return file_extension in self._metadata.supported_file_types
     
     def _validate_input(self, tool_input: ToolInput) -> List[str]:
         """
@@ -273,47 +287,42 @@ class BaseTool(ABC):
         Returns:
             List of validation errors (empty if valid)
         """
-        # Comprehensive input validation with detailed error messages
-        pass
+        errors = []
+        
+        # Check required fields
+        if not tool_input.operation:
+            errors.append("Operation is required")
+        
+        # Check if operation is supported
+        if tool_input.operation and not self.supports_operation(tool_input.operation):
+            errors.append(f"Operation '{tool_input.operation}' is not supported")
+        
+        # Validate file paths
+        for file_path in tool_input.target_files:
+            try:
+                Path(file_path)
+            except Exception:
+                errors.append(f"Invalid file path: {file_path}")
+        
+        return errors
     
-    def _process_result(self, raw_result: Any, execution_time: float) -> ToolResult:
+    def _validate_configuration(self, configuration: Dict[str, Any]) -> List[str]:
         """
-        Private method to process raw execution results into standardized format.
+        Private method to validate configuration.
         
         Args:
-            raw_result: Raw result from tool execution
-            execution_time: Execution time in seconds
+            configuration: Configuration to validate
             
         Returns:
-            Standardized ToolResult
+            List of validation errors (empty if valid)
         """
-        # Convert raw results to standardized ToolResult format
-        pass
-    
-    def _handle_error(self, error: Exception, context: Dict[str, Any]) -> ToolResult:
-        """
-        Private method to handle errors and generate error results.
+        errors = []
         
-        Args:
-            error: Exception that occurred
-            context: Execution context when error occurred
-            
-        Returns:
-            ToolResult with error information
-        """
-        # Handle errors gracefully and generate informative error results
-        pass
-    
-    def _log_execution(self, tool_input: ToolInput, result: ToolResult) -> None:
-        """
-        Private method to log tool execution for monitoring and debugging.
+        # Basic validation - can be extended by subclasses
+        if not isinstance(configuration, dict):
+            errors.append("Configuration must be a dictionary")
         
-        Args:
-            tool_input: Input used for execution
-            result: Result of execution
-        """
-        # Log execution details for monitoring and debugging
-        pass
+        return errors
     
     def _update_status(self, new_status: ToolStatus) -> None:
         """
@@ -322,8 +331,9 @@ class BaseTool(ABC):
         Args:
             new_status: New status to set
         """
-        # Update status with proper logging and state management
-        pass
+        old_status = self._status
+        self._status = new_status
+        self._logger.debug(f"Status changed from {old_status} to {new_status}")
 
 
 # Utility functions for tool management
@@ -338,28 +348,25 @@ def create_tool_input(operation: str, **kwargs) -> ToolInput:
     Returns:
         ToolInput with specified parameters
     """
-    # return ToolInput(operation=operation, **kwargs)
-    pass
+    return ToolInput(operation=operation, **kwargs)
 
 
-def create_success_result(output_files: Optional[List[str]] = None, **kwargs) -> ToolResult:
+def create_success_result(output: Optional[Dict[str, Any]] = None, **kwargs) -> ToolResult:
     """
     Convenience function to create successful tool result.
     
     Args:
-        output_files: Optional list of output files
+        output: Optional output data
         **kwargs: Additional result parameters
         
     Returns:
         ToolResult indicating success
     """
-    # return ToolResult(
-    #     status=ToolStatus.COMPLETED,
-    #     success=True,
-    #     output_files=output_files or [],
-    #     **kwargs
-    # )
-    pass
+    return ToolResult(
+        status=ToolStatus.SUCCESS,
+        output=output or {},
+        **kwargs
+    )
 
 
 def create_error_result(errors: List[str], **kwargs) -> ToolResult:
@@ -373,10 +380,8 @@ def create_error_result(errors: List[str], **kwargs) -> ToolResult:
     Returns:
         ToolResult indicating failure
     """
-    # return ToolResult(
-    #     status=ToolStatus.FAILED,
-    #     success=False,
-    #     errors=errors,
-    #     **kwargs
-    # )
-    pass
+    return ToolResult(
+        status=ToolStatus.ERROR,
+        errors=errors,
+        **kwargs
+    )

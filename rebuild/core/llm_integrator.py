@@ -14,33 +14,36 @@
 """
 
 # Allowed imports based on dependency rules
-# import json
-# import logging
-# from typing import Dict, Any, List, Optional, Tuple, Union
-# from dataclasses import dataclass, field
-# from enum import Enum, auto
-# 
-# from .rule_parser import RuleParser, ParsedRule
-# from .rule_engine import RuleEngine, ArchitecturalRule, ComplianceResult
+import json
+import logging
+import re
+import ast
+from typing import Dict, Any, List, Optional, Tuple, Union
+from dataclasses import dataclass, field
+from enum import Enum, auto
+
+# Import from shared layer (allowed by architecture)
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from shared.ai_client import AIClient, APIProvider, AIRequest, RequestType, AIResponse
 
 
 class LLMProvider(Enum):
     """Enumeration of supported LLM providers."""
-    # OPENAI = auto()      # OpenAI GPT models
-    # ANTHROPIC = auto()   # Anthropic Claude models
-    # GEMINI = auto()      # Google Gemini models
-    # LOCAL = auto()       # Local/self-hosted models
-    pass
+    OPENAI = auto()      # OpenAI GPT models
+    ANTHROPIC = auto()   # Anthropic Claude models
+    GEMINI = auto()      # Google Gemini models
+    LOCAL = auto()       # Local/self-hosted models
 
 
 class ValidationStatus(Enum):
     """Enumeration of code validation results."""
-    # VALID = auto()           # Code passes all validations
-    # SYNTAX_ERROR = auto()    # Code has syntax errors
-    # RULE_VIOLATION = auto()  # Code violates architectural rules
-    # INCOMPLETE = auto()      # Code is incomplete or partial
-    # INVALID = auto()         # Code is fundamentally invalid
-    pass
+    VALID = auto()           # Code passes all validations
+    SYNTAX_ERROR = auto()    # Code has syntax errors
+    RULE_VIOLATION = auto()  # Code violates architectural rules
+    INCOMPLETE = auto()      # Code is incomplete or partial
+    INVALID = auto()         # Code is fundamentally invalid
 
 
 @dataclass
@@ -55,18 +58,19 @@ class CodeContext:
         function_name: Optional function name for specific generation
         existing_code: Optional existing code to build upon
         dependencies: List of required dependencies
-        rules: Applicable architectural rules
+        imports: List of import statements
+        rules: Dict of applicable architectural rules
         metadata: Additional context metadata
     """
-    # file_path: str
-    # module_name: str
-    # class_name: Optional[str] = None
-    # function_name: Optional[str] = None
-    # existing_code: Optional[str] = None
-    # dependencies: List[str] = field(default_factory=list)
-    # rules: List[ArchitecturalRule] = field(default_factory=list)
-    # metadata: Dict[str, Any] = field(default_factory=dict)
-    pass
+    file_path: str
+    module_name: Optional[str] = None
+    class_name: Optional[str] = None
+    function_name: Optional[str] = None
+    existing_code: Optional[str] = None
+    dependencies: List[str] = field(default_factory=list)
+    imports: List[str] = field(default_factory=list)
+    rules: Dict[str, str] = field(default_factory=dict)
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -80,17 +84,73 @@ class ValidationResult:
         syntax_errors: List of syntax errors found
         rule_violations: List of rule violations found
         suggestions: List of improvement suggestions
-        refined_code: Optional refined code if auto-refinement applied
+        confidence_score: Confidence in the validation result
+        errors: List of all errors found
+        warnings: List of warnings
         metadata: Additional validation metadata
     """
-    # is_valid: bool
-    # status: ValidationStatus
-    # syntax_errors: List[str] = field(default_factory=list)
-    # rule_violations: List[str] = field(default_factory=list)
-    # suggestions: List[str] = field(default_factory=list)
-    # refined_code: Optional[str] = None
-    # metadata: Dict[str, Any] = field(default_factory=dict)
-    pass
+    is_valid: bool
+    status: ValidationStatus
+    syntax_errors: List[str] = field(default_factory=list)
+    rule_violations: List[str] = field(default_factory=list)
+    suggestions: List[str] = field(default_factory=list)
+    confidence_score: float = 0.0
+    errors: List[str] = field(default_factory=list)
+    warnings: List[str] = field(default_factory=list)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class PromptTemplate:
+    """Template for generating prompts from rules and context."""
+    template_id: str
+    template_text: str
+    variables: List[str] = field(default_factory=list)
+    context_requirements: List[str] = field(default_factory=list)
+    provider_specific: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    
+    def render(self, context: Dict[str, Any]) -> str:
+        """Render template with provided context."""
+        try:
+            # Simple string formatting for now
+            return self.template_text.format(**context)
+        except KeyError as e:
+            # Missing variable, return template with placeholder
+            return self.template_text.replace(f"{{{e.args[0]}}}", f"[{e.args[0]}]")
+
+
+@dataclass
+class ContextWindow:
+    """Manages context window for LLM requests."""
+    max_tokens: int
+    current_tokens: int = 0
+    context_data: Dict[str, Any] = field(default_factory=dict)
+    priority_items: List[str] = field(default_factory=list)
+    overflow_strategy: str = "truncate"
+    
+    def available_tokens(self) -> int:
+        """Get available tokens in context window."""
+        return max(0, self.max_tokens - self.current_tokens)
+    
+    def is_near_capacity(self, threshold: float = 0.9) -> bool:
+        """Check if context window is near capacity."""
+        return (self.current_tokens / self.max_tokens) >= threshold
+
+
+@dataclass
+class RefinementSession:
+    """Manages iterative refinement sessions."""
+    session_id: str
+    original_prompt: str
+    iterations: List[Dict[str, Any]] = field(default_factory=list)
+    current_iteration: int = 0
+    max_iterations: int = 5
+    convergence_criteria: Dict[str, Any] = field(default_factory=dict)
+    
+    def add_iteration(self, iteration_data: Dict[str, Any]) -> None:
+        """Add an iteration to the session."""
+        self.iterations.append(iteration_data)
+        self.current_iteration += 1
 
 
 class LLMIntegrator:
@@ -108,211 +168,76 @@ class LLMIntegrator:
     - Implements secure API key management
     """
     
-    def __init__(self, provider: LLMProvider = LLMProvider.OPENAI, api_key: Optional[str] = None):
+    def __init__(self, ai_client: Optional[AIClient] = None, rule_engine=None, default_provider: LLMProvider = LLMProvider.OPENAI):
         """
         Initialize the LLM integrator with specified provider.
         
         Args:
-            provider: LLM provider to use for code generation
-            api_key: Optional API key (will use environment variable if not provided)
+            ai_client: AI client for making requests
+            rule_engine: Rule engine for processing rules
+            default_provider: Default LLM provider to use
         """
-        # self._provider = provider
-        # self._api_key = api_key
-        # self._rule_parser = RuleParser()
-        # self._rule_engine = RuleEngine()
-        # self._logger = logging.getLogger(__name__)
-        # self._max_context_tokens = self._get_max_context_for_provider(provider)
-        pass
+        self._ai_client = ai_client
+        self._rule_engine = rule_engine
+        self.default_provider = default_provider
+        self._logger = logging.getLogger(__name__)
+        self._max_context_tokens = self._get_max_context_for_provider(default_provider)
     
-    def generate_prompt(self, rules: List[ArchitecturalRule], context: CodeContext) -> str:
+    def convert_rules_to_prompt(self, rules: Dict[str, str], context: CodeContext) -> str:
         """
-        Generate LLM prompt from architectural rules and context.
+        Convert rules dictionary to LLM prompt.
         
         Args:
-            rules: List of applicable architectural rules
+            rules: Dictionary of rule name to rule value
             context: Code generation context
             
         Returns:
-            Formatted prompt string optimized for LLM code generation
-            
-        Prompt Generation Strategy:
-        - Convert rules into clear, actionable constraints
-        - Include relevant code context and dependencies
-        - Structure prompt for optimal LLM comprehension
-        - Embed validation criteria for self-checking
+            Formatted prompt string
         """
-        # Implementation would:
-        # 1. Convert rules into natural language constraints
-        # 2. Structure prompt with clear sections
-        # 3. Include code context and examples
-        # 4. Add validation instructions
-        # 5. Optimize for specific LLM provider
-        pass
-    
-    def validate_response(self, code: str, rules: List[ArchitecturalRule], context: CodeContext) -> ValidationResult:
-        """
-        Validate LLM-generated code against architectural rules.
+        prompt_parts = []
         
-        Args:
-            code: Generated code to validate
-            rules: Architectural rules to validate against
-            context: Original generation context
-            
-        Returns:
-            ValidationResult with detailed analysis
-            
-        Validation Process:
-        - Syntax validation using AST parsing
-        - Rule compliance checking via rule engine
-        - Import validation against allowed/forbidden lists
-        - Interface compliance verification
-        - Dependency direction validation
-        """
-        # Implementation would:
-        # 1. Parse code for syntax validation
-        # 2. Check rule compliance via rule engine
-        # 3. Validate imports and dependencies
-        # 4. Check interface compliance
-        # 5. Generate comprehensive validation result
-        pass
-    
-    def iterative_refinement(self, code: str, violations: List[str], rules: List[ArchitecturalRule], context: CodeContext, max_iterations: int = 3) -> str:
-        """
-        Iteratively refine code to address rule violations.
+        # Add purpose and responsibility
+        if "PURPOSE" in rules:
+            prompt_parts.append(f"Generate code with the following purpose: {rules['PURPOSE']}")
         
-        Args:
-            code: Initial code to refine
-            violations: List of violations to address
-            rules: Architectural rules to comply with
-            context: Original generation context
-            max_iterations: Maximum refinement iterations
-            
-        Returns:
-            Refined code that addresses violations
-            
-        Refinement Strategy:
-        - Generate targeted prompts for specific violations
-        - Apply incremental fixes to maintain code integrity
-        - Validate each iteration for compliance improvement
-        - Stop when compliant or max iterations reached
-        """
-        # Implementation would:
-        # 1. Generate refinement prompt focused on violations
-        # 2. Request specific fixes from LLM
-        # 3. Validate improved compliance
-        # 4. Iterate until compliant or max iterations
-        # 5. Return best iteration result
-        pass
-    
-    def _convert_rules_to_prompt(self, rules: List[ArchitecturalRule]) -> str:
-        """
-        Private method to convert architectural rules into prompt text.
+        if "RESPONSIBILITY" in rules:
+            prompt_parts.append(f"The code should be responsible for: {rules['RESPONSIBILITY']}")
         
-        Args:
-            rules: List of architectural rules to convert
-            
-        Returns:
-            Natural language prompt text representing rules
-        """
-        # Convert structured rules into LLM-friendly constraints
-        pass
-    
-    def _manage_context_window(self, prompt: str, context: CodeContext) -> str:
-        """
-        Private method to manage LLM context window limitations.
+        # Add context information
+        if context.function_name:
+            prompt_parts.append(f"Function name: {context.function_name}")
         
-        Args:
-            prompt: Generated prompt text
-            context: Code generation context
-            
-        Returns:
-            Optimized prompt that fits within context window
-        """
-        # Optimize prompt length for specific LLM provider limits
-        pass
-    
-    def _validate_code_syntax(self, code: str) -> Tuple[bool, List[str]]:
-        """
-        Private method to validate Python code syntax.
+        if context.class_name:
+            prompt_parts.append(f"Class name: {context.class_name}")
         
-        Args:
-            code: Python code to validate
-            
-        Returns:
-            Tuple of (is_valid, error_messages)
-        """
-        # Use AST parsing to validate Python syntax
-        pass
-    
-    def _refine_with_feedback(self, original_code: str, feedback: str, context: CodeContext) -> str:
-        """
-        Private method to refine code based on specific feedback.
+        if context.file_path:
+            prompt_parts.append(f"File path: {context.file_path}")
         
-        Args:
-            original_code: Code to refine
-            feedback: Specific feedback to address
-            context: Generation context
-            
-        Returns:
-            Refined code addressing the feedback
-        """
-        # Generate refinement prompt and request LLM improvement
-        pass
+        # Add import constraints
+        if "IMPORTS_ALLOWED" in rules:
+            prompt_parts.append(f"Only use these imports: {rules['IMPORTS_ALLOWED']}")
+        
+        if "IMPORTS_FORBIDDEN" in rules:
+            prompt_parts.append(f"Do not use these imports: {rules['IMPORTS_FORBIDDEN']}")
+        
+        # Add other rules
+        for rule_name, rule_value in rules.items():
+            if rule_name not in ["PURPOSE", "RESPONSIBILITY", "IMPORTS_ALLOWED", "IMPORTS_FORBIDDEN"]:
+                prompt_parts.append(f"{rule_name}: {rule_value}")
+        
+        # Combine into coherent prompt
+        prompt = "\n".join(prompt_parts)
+        prompt += "\n\nGenerate clean, well-documented Python code that follows all the above rules."
+        
+        return prompt
     
     def _get_max_context_for_provider(self, provider: LLMProvider) -> int:
-        """
-        Private method to get maximum context tokens for LLM provider.
-        
-        Args:
-            provider: LLM provider to check
-            
-        Returns:
-            Maximum context tokens for the provider
-        """
-        # Return provider-specific context limits
-        pass
+        """Get maximum context tokens for provider."""
+        context_limits = {
+            LLMProvider.OPENAI: 8192,
+            LLMProvider.ANTHROPIC: 100000,
+            LLMProvider.GEMINI: 32768,
+            LLMProvider.LOCAL: 4096
+        }
+        return context_limits.get(provider, 4096)
     
-    def _call_llm_api(self, prompt: str, temperature: float = 0.1) -> str:
-        """
-        Private method to make API call to LLM provider.
-        
-        Args:
-            prompt: Prompt to send to LLM
-            temperature: Generation temperature (lower for more deterministic)
-            
-        Returns:
-            Raw LLM response text
-        """
-        # Make API call to configured LLM provider
-        pass
-
-
-# Convenience functions for common operations
-def create_llm_integrator(provider: LLMProvider = LLMProvider.OPENAI) -> LLMIntegrator:
-    """
-    Factory function to create LLM integrator with specified provider.
-    
-    Args:
-        provider: LLM provider to use
-        
-    Returns:
-        Configured LLMIntegrator instance
-    """
-    # return LLMIntegrator(provider)
-    pass
-
-
-def generate_code_with_rules(rules: List[ArchitecturalRule], context: CodeContext, integrator: LLMIntegrator) -> Tuple[str, ValidationResult]:
-    """
-    Convenience function for complete rule-driven code generation.
-    
-    Args:
-        rules: Architectural rules to apply
-        context: Code generation context
-        integrator: LLM integrator to use
-        
-    Returns:
-        Tuple of (generated_code, validation_result)
-    """
-    # Implementation would handle complete generation and validation cycle
-    pass

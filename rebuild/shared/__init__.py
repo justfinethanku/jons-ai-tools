@@ -17,14 +17,14 @@
 __version__ = "1.0.0"
 
 # Allowed imports - shared utility modules only
-# from typing import Dict, Any, Optional
-# import logging
-# 
-# from .ai_client import AIClient, APIProvider, ClientConfig
-# from .utils import (
-#     validate_file_path, sanitize_input, format_output,
-#     calculate_metrics, hash_content, timestamp_now
-# )
+from typing import Dict, Any, Optional
+import logging
+
+from .ai_client import AIClient, APIProvider, ClientConfig
+from .utils import (
+    validate_file_path, sanitize_input, format_output,
+    calculate_metrics, hash_content, timestamp_now
+)
 
 # Shared configuration for utilities
 _shared_config: Dict[str, Any] = {
